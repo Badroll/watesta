@@ -76,17 +76,17 @@ class ApiController extends Controller
         else if($msg == "MD"){
             $this->MD($jsonRequest, $user);
         }
-        else if($msg == "MK"){
-            $this->MK($jsonRequest);
+        else if($msg == "MD"){
+            $this->MD($jsonRequest);
         }
-        else if(substr($msg, 0, 2) == "MK" && substr($msg, 0, 3) != "MKD" && substr($msg, 0, 3) != "MKL"){
-            $this->MKX($jsonRequest, $msg);
+        else if(substr($msg, 0, 2) == "MD" && substr($msg, 0, 3) != "MDD" && substr($msg, 0, 3) != "MDL"){
+            $this->MDX($jsonRequest, $msg);
         }
-        else if(substr($msg, 0, 3) == "MKD"){
-            $this->MKD($jsonRequest, $msg);
+        else if(substr($msg, 0, 3) == "MDD"){
+            $this->MDD($jsonRequest, $msg);
         }
-        else if($msg == "MKL"){
-            $this->MKL($jsonRequest, $user);
+        else if($msg == "MDL"){
+            $this->MDL($jsonRequest, $user);
         }
         else if($msg == "MP"){
             $this->MP($jsonRequest, $user);
@@ -124,7 +124,7 @@ class ApiController extends Controller
         $replyContent .= "\n*MP* untuk PROFIL ANDA";
         $replyContent .= "\n*ML* untuk INPUT DATA DAN LAPORAN";
         $replyContent .= "\n*MD* untuk DIAGNOSA & REKOMENDASI";
-        $replyContent .= "\n*MK* untuk KONSULTASI";
+        $replyContent .= "\n*ME* untuk KONSULTASI";
         
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
         $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
@@ -384,33 +384,33 @@ class ApiController extends Controller
     }
 
 
-    private function MK($jsonRequest){//OK
+    private function MD($jsonRequest){//OK
         $replyHeader = "MENU KONSULATSI";
         $replyContent = "\n";
         $replyContent .= "\nKonsultasikan buah hati anda melalui layanan berikut, ketik:";
-        $replyContent .= "\n*MK1* untuk KONSULTASI TERKAIT *EDUKASI STUNTING*";
-        $replyContent .= "\n*MK2* untuk KONSULTASI TERKAIT *MP ASI*";
-        $replyContent .= "\n*MK3* untuk KONSULTASI TERKAIT *ASI EKSLUSIF*";
-        $replyContent .= "\n*MK4* untuk KONSULTASI TERKAIT *PENCEGAHAN INFEKSI*";
-        $replyContent .= "\n*MK5* untuk KONSULTASI TERKAIT *PERAWATAN KESEHATAN*";
-        $replyContent .= "\n*MKL* untuk KONSULTASI *LANGSUNG DENGAN BIDAN*";
+        $replyContent .= "\n*MD1* untuk KONSULTASI TERKAIT *EDUKASI STUNTING*";
+        $replyContent .= "\n*MD2* untuk KONSULTASI TERKAIT *MP ASI*";
+        $replyContent .= "\n*MD3* untuk KONSULTASI TERKAIT *ASI EKSLUSIF*";
+        $replyContent .= "\n*MD4* untuk KONSULTASI TERKAIT *PENCEGAHAN INFEKSI*";
+        $replyContent .= "\n*MD5* untuk KONSULTASI TERKAIT *PERAWATAN KESEHATAN*";
+        $replyContent .= "\n*MDL* untuk KONSULTASI *LANGSUNG DENGAN BIDAN*";
         
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
         $this->multipleSendtext($jsonRequest["phone"], $finalReply);
     }
 
 
-    private function MKX($jsonRequest, $msg){//OK
+    private function MDX($jsonRequest, $msg){//OK
         error_log(__FUNCTION__ . " called");
-        if($msg == "MK1"){
+        if($msg == "MD1"){
             $kategori = "KATEGORI_ARTIKEL_EDUKASI_STUNTING";
-        }else if($msg == "MK2"){
+        }else if($msg == "MD2"){
             $kategori = "KATEGORI_ARTIKEL_MP_ASI";
-        }else if($msg == "MK3"){
+        }else if($msg == "MD3"){
             $kategori = "KATEGORI_ARTIKEL_ASI_EKSLUSIF";
-        }else if($msg == "MK4"){
+        }else if($msg == "MD4"){
             $kategori = "KATEGORI_ARTIKEL_PENCEGAHAN_INFEKSI";
-        }else if($msg == "MK5"){
+        }else if($msg == "MD5"){
             $kategori = "KATEGORI_ARTIKEL_PERAWATAN_KESEHATAN";
         }
         error_log($kategori);
@@ -423,8 +423,8 @@ class ApiController extends Controller
         $replyContent = "\n";
         $replyContent .= "\n";
         foreach($artikel as $key => $value){
-            $replyContent .= "\nâ€¢ *" . substr($value->{"ARTIKEL_JUDUL"}, 0, 50) . "*";
-            $replyContent .= "\n   selengkapnya di https://wa.me/62882008074530?text=MKD" . $value->{"ARTIKEL_ID"} . "";
+            $replyContent .= "\n• *" . substr($value->{"ARTIKEL_JUDUL"}, 0, 50) . "*";
+            $replyContent .= "\n   selengkapnya di https://wa.me/62882008074530?text=MDD" . $value->{"ARTIKEL_ID"} . "";
             $replyContent .= "\n";
         }
         if(count($artikel) == 0){
@@ -436,8 +436,8 @@ class ApiController extends Controller
     }
 
  
-    private function MKD($jsonRequest, $msg){//OK
-        $artikelId = str_replace("MKD", "", $msg);
+    private function MDD($jsonRequest, $msg){//OK
+        $artikelId = str_replace("MDD", "", $msg);
         $artikel = DB::select("
             SELECT * FROM artikel WHERE ARTIKEL_ID = ?
         ", [$artikelId]);
@@ -448,7 +448,7 @@ class ApiController extends Controller
 
             $finalReply = "*" . $replyHeader . "*" . $replyContent;
             $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
-            $this->MK($jsonRequest);
+            $this->MD($jsonRequest);
 
         }else{
             $artikel = $artikel[0];
@@ -462,7 +462,7 @@ class ApiController extends Controller
     }
 
 
-    private function MKL($jsonRequest, $user){//OK
+    private function MDL($jsonRequest, $user){//OK
         $dokter = DB::select("
             SELECT * FROM dokter WHERE DOKTER_DAERAH = ?
         ", [$user->{"USER_DAERAH"}]);
