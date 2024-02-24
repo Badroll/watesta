@@ -79,14 +79,14 @@ class ApiController extends Controller
         else if($msg == "ME"){
             $this->ME($jsonRequest);
         }
-        else if(substr($msg, 0, 2) == "ME" && substr($msg, 0, 3) != "MED" && substr($msg, 0, 3) != "MEL"){
+        else if(substr($msg, 0, 2) == "ME" && substr($msg, 0, 3) != "MED" /*&& substr($msg, 0, 3) != "MEL"*/){
             $this->MEX($jsonRequest, $msg);
         }
         else if(substr($msg, 0, 3) == "MED"){
             $this->MED($jsonRequest, $msg);
         }
-        else if($msg == "MEL"){
-            $this->MEL($jsonRequest, $user);
+        else if($msg == "MK"){
+            $this->MK($jsonRequest, $user);
         }
         else if($msg == "MP"){
             $this->MP($jsonRequest, $user);
@@ -125,6 +125,7 @@ class ApiController extends Controller
         $replyContent .= "\n*ML* untuk INPUT DATA DAN LAPORAN";
         $replyContent .= "\n*MD* untuk DIAGNOSA & REKOMENDASI";
         $replyContent .= "\n*ME* untuk EDUKASI";
+        $replyContent .= "\n*MK* untuk KONSULTASI LANGSUNG";
         
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
         $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
@@ -462,12 +463,21 @@ class ApiController extends Controller
     }
 
 
-    private function MEL($jsonRequest, $user){//OK
-        $dokter = DB::select("
-            SELECT * FROM dokter WHERE DOKTER_DAERAH = ?
-        ", [$user->{"USER_DAERAH"}]);
+    private function MK($jsonRequest, $user){//OK
+        // $dokter = DB::select("
+        //     SELECT * FROM dokter WHERE DOKTER_DAERAH = ?
+        // ", [$user->{"USER_DAERAH"}]);
 
-        $replyHeader = "MENU EDUKASI LANGSUNG DENGAN BIDAN";
+        $dokter = [];
+        $aDokter = [];
+        $aDokter["DOKTER_NAMA"] = "Dr. Ika Pantiawati";
+        $aDokter["DOKTER_PHONE"] = "6285290014400";
+        array_push($dokter, $aDokter);
+        $aDokter["DOKTER_NAMA"] = "Dr. Evina";
+        $aDokter["DOKTER_PHONE"] = "6281806437710";
+        array_push($dokter, $aDokter);
+
+        $replyHeader = "MENU KONSULTASI LANGSUNG DENGAN DOKTER";
         $replyContent = "\n";
         foreach($dokter as $key => $value){
             $text = "Halo"  . $value->{"DOKTER_NAMA"} . "";
@@ -477,7 +487,7 @@ class ApiController extends Controller
             $replyContent .= "\n";
         }
         if(count($dokter) == 0){
-            $replyContent .= "\n*Mohon maaf, saat ini tidak ada bidan tersedia*";
+            $replyContent .= "\n*Mohon maaf, saat ini tidak ada dokter tersedia*";
         }
         
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
