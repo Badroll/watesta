@@ -124,7 +124,7 @@ class ApiController extends Controller
         $replyContent .= "\n*MP* untuk PROFIL ANDA";
         $replyContent .= "\n*ML* untuk INPUT DATA DAN LAPORAN";
         $replyContent .= "\n*MD* untuk DIAGNOSA & REKOMENDASI";
-        $replyContent .= "\n*ME* untuk KONSULTASI";
+        $replyContent .= "\n*ME* untuk EDUKASI";
         
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
         $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
@@ -387,13 +387,13 @@ class ApiController extends Controller
     private function ME($jsonRequest){//OK
         $replyHeader = "MENU KONSULATSI";
         $replyContent = "\n";
-        $replyContent .= "\nKonsultasikan buah hati anda melalui layanan berikut, ketik:";
-        $replyContent .= "\n*ME1* untuk KONSULTASI TERKAIT *EDUKASI STUNTING*";
-        $replyContent .= "\n*ME2* untuk KONSULTASI TERKAIT *MP ASI*";
-        $replyContent .= "\n*ME3* untuk KONSULTASI TERKAIT *ASI EKSLUSIF*";
-        $replyContent .= "\n*ME4* untuk KONSULTASI TERKAIT *PENCEGAHAN INFEKSI*";
-        $replyContent .= "\n*ME5* untuk KONSULTASI TERKAIT *PERAWATAN KESEHATAN*";
-        $replyContent .= "\n*MEL* untuk KONSULTASI *LANGSUNG DENGAN BIDAN*";
+        $replyContent .= "\Edukasi untuk kesehatan buah hati anda melalui layanan berikut, ketik:";
+        $replyContent .= "\n*ME1* untuk EDUKASI TERKAIT *EDUKASI STUNTING*";
+        $replyContent .= "\n*ME2* untuk EDUKASI TERKAIT *MP ASI*";
+        $replyContent .= "\n*ME3* untuk EDUKASI TERKAIT *ASI EKSLUSIF*";
+        $replyContent .= "\n*ME4* untuk EDUKASI TERKAIT *PENCEGAHAN INFEKSI*";
+        $replyContent .= "\n*ME5* untuk EDUKASI TERKAIT *PERAWATAN KESEHATAN*";
+        //$replyContent .= "\n*MEL* untuk EDUKASI *LANGSUNG DENGAN BIDAN*";
         
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
         $this->multipleSendtext($jsonRequest["phone"], $finalReply);
@@ -419,7 +419,7 @@ class ApiController extends Controller
             SELECT * FROM artikel WHERE ARTIKEL_KATEGORI = ?
         ", [$kategori]);
 
-        $replyHeader = "MENU KONSULTASI ". strtoupper($info);
+        $replyHeader = "MENU EDUKASI ". strtoupper($info);
         $replyContent = "\n";
         $replyContent .= "\n";
         foreach($artikel as $key => $value){
@@ -442,7 +442,7 @@ class ApiController extends Controller
             SELECT * FROM artikel WHERE ARTIKEL_ID = ?
         ", [$artikelId]);
         if(count($artikel) == 0){
-            $replyHeader = "Mohon Maaf, konsultasi ini tidak ditemukan";
+            $replyHeader = "Mohon Maaf, Edukasi ini tidak ditemukan";
             $replyContent = "\n";
             $replyContent .= "\n" . "_kembali ke menu sebelumnya..._";
 
@@ -467,7 +467,7 @@ class ApiController extends Controller
             SELECT * FROM dokter WHERE DOKTER_DAERAH = ?
         ", [$user->{"USER_DAERAH"}]);
 
-        $replyHeader = "MENU KONSULTASI LANGSUNG DENGAN BIDAN";
+        $replyHeader = "MENU EDUKASI LANGSUNG DENGAN BIDAN";
         $replyContent = "\n";
         foreach($dokter as $key => $value){
             $text = "Halo"  . $value->{"DOKTER_NAMA"} . "";
