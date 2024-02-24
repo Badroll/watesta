@@ -115,19 +115,14 @@ class ApiController extends Controller
         return Helper::compose2("SUCCESS", "message processed", $jsonRequest);
     }
 
-
-    public function track(){
-
-    }
-
     
     private function menu($jsonRequest){//OK
         error_log(__FUNCTION__ . " called");
-        $replyHeader = "Halo, Selamat Datang di ". Helper::getSetting("APP_NAME_LONG") . " ðŸ˜Š";
+        $replyHeader = "Halo, Selamat Datang di ". Helper::getSetting("APP_NAME_LONG") . " 😊";
         $replyContent = "\n";
         $replyContent .= "\nSilahkan pilih menu dengan ketik:";
-        $replyContent .= "\n*ML* untuk INPUT DATA DAN LAPORAN";
         $replyContent .= "\n*MP* untuk PROFIL ANDA";
+        $replyContent .= "\n*ML* untuk INPUT DATA DAN LAPORAN";
         $replyContent .= "\n*MD* untuk DIAGNOSA & REKOMENDASI";
         $replyContent .= "\n*MK* untuk KONSULTASI";
         
