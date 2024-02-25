@@ -24,6 +24,7 @@ Route::get("/", function(){
 Route::post('/', function(){
 	return "welcome post";
 });
+Route::get("tojson", "ApiController@toJson");
 
 Route::post("hooks", "ApiController@hooks");
 Route::match(["get", "post"], "send",

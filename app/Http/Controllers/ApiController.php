@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 
-use Request, File, Response, Helper, DB;
+use Request, File, Response, Helper, DB, Log;
 
 class ApiController extends Controller
 {
@@ -67,11 +67,23 @@ class ApiController extends Controller
         else if($msg == "MLL"){
             $this->MLL($jsonRequest, $user);
         }
-        else if($msg == "MLC"){
-            $this->MLC($jsonRequest, $user);
+        // else if($msg == "MLC"){
+        //     $this->MLC($jsonRequest, $user);
+        // }
+        else if($msg == "MLCB"){
+            $this->MLCB($jsonRequest, $user);
+        }
+        else if($msg == "MLCM"){
+            $this->MLCM($jsonRequest, $user);
         }
         else if(str_contains($msg, "#MLCP")){
             $this->MLCP($jsonRequest, $user, $msg);
+        }
+        else if($msg == "MP"){
+            $this->MP($jsonRequest, $user);
+        }
+        else if(str_contains($msg, "#MPP")){
+            $this->MPP($jsonRequest, $user, $msg);
         }
         else if($msg == "MD"){
             $this->MD($jsonRequest, $user);
@@ -87,12 +99,6 @@ class ApiController extends Controller
         }
         else if($msg == "MK"){
             $this->MK($jsonRequest, $user);
-        }
-        else if($msg == "MP"){
-            $this->MP($jsonRequest, $user);
-        }
-        else if(str_contains($msg, "#MPP")){
-            $this->MPP($jsonRequest, $user, $msg);
         }
         else if($msg == "menu"){
             $this->menu($jsonRequest);
@@ -341,6 +347,11 @@ class ApiController extends Controller
         $replyContent .= "\n•";
         $replyContent .= "\n_(process code #MLCP)_";
         
+        $addonParams = $this->cekPanjangBadan($replyContent, $user->{"USER_ID"}, $jsonRequest["phone"]);
+        if($addonParams === false){
+            return;
+        }
+        
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
         $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
     }
@@ -356,6 +367,7 @@ class ApiController extends Controller
             ];
             foreach(preg_split("/((\r?\n)|(\r\n?))/", $msg) as $key => $line){
                 error_log($line);
+                //print($line);print("\n");
                 if(str_contains($line, "Tinggi Badan (cm)")){
                     $extract = "TB";
                     $extractLine = $key + 1;
@@ -364,30 +376,31 @@ class ApiController extends Controller
                     $extract = "BB";
                     $extractLine = $key + 1;
                 }
-                // else if(str_contains($line, "Pola Makan (pilih berdasarkan angka)")){
-                //     $extract = "POLA_MAKAN";
-                //     $extractLine = $key + 4;
-                // }
-                // else if(str_contains($line, "Nafsu Makan (pilih berdasarkan angka)")){
-                //     $extract = "NAFSU_MAKAN";
-                //     $extractLine = $key + 4;
-                // }
-                // else if(str_contains($line, "Ketercukupan Lauk Pauk (pilih berdasarkan angka)")){
-                //     $extract = "KETERCUKUPAN_PROTEIN";
-                //     $extractLine = $key + 4;
-                // }
-                // else if(str_contains($line, "Ketercukupan Nasi/Makanan Pokok (pilih berdasarkan angka)")){
-                //     $extract = "KETERCUKUPAN_KARBO";
-                //     $extractLine = $key + 4;
-                // }
-                // else if(str_contains($line, "Frekuensi BAB (pilih berdasarkan angka)")){
-                //     $extract = "BAB";
-                //     $extractLine = $key + 4;
-                // }
-                // else if(str_contains($line, "Aktivitas Anak (pilih berdasarkan angka)")){
-                //     $extract = "AKTIVITAS";
-                //     $extractLine = $key + 4;
-                // }
+                //
+                else if(str_contains($line, "Ketercukupan makanan pokok (pilih berdasarkan angka)")){
+                    $extract = "KETERCUKUPAN_MAKANAN";
+                    $extractLine = $key + 6;
+                }
+                else if(str_contains($line, "Ketercukupan lauk pauk (pilih berdasarkan angka)")){
+                    $extract = "KETERCUKUPAN_LAUK";
+                    $extractLine = $key + 12;
+                }
+                else if(str_contains($line, "Ketercukupan sayur (pilih berdasarkan angka)")){
+                    $extract = "KETERCUKUPAN_SAYUR";
+                    $extractLine = $key + 7;
+                }
+                else if(str_contains($line, "Ketercukupan buah (pilih berdasarkan angka)")){
+                    $extract = "KETERCUKUPAN_BUAH";
+                    $extractLine = $key + 6;
+                }
+                else if(str_contains($line, "Ketercukupan minum air mineral (pilih berdasarkan angka)")){
+                    $extract = "KETERCUKUPAN_MINUM";
+                    $extractLine = $key + 7;
+                }
+                else if(str_contains($line, "Ketercukupan ASI atau susu formula (pilih berdasarkan angka)")){
+                    $extract = "KETERCUKUPAN_ASI";
+                    $extractLine = $key + 7;
+                }
 
                 if($key == $extractLine){
                     if($extract == "BB"){
@@ -396,50 +409,34 @@ class ApiController extends Controller
                     else if($extract == "TB"){
                         $params["LAPORAN_TB"] = str_replace(",", ".", trim($line));
                     }
-                    // else if($extract == "POLA_MAKAN"){
-                    //     $params["LAPORAN_POLA_MAKAN"] = Helper::getReferenceIdByOrder("POLA_MAKAN", trim($line));
-                    // }
-                    // else if($extract == "NAFSU_MAKAN"){
-                    //     $params["LAPORAN_NAFSU_MAKAN"] = Helper::getReferenceIdByOrder("NAFSU_MAKAN", trim($line));
-                    // }
-                    // else if($extract == "KETERCUKUPAN_PROTEIN"){
-                    //     $params["LAPORAN_KETERCUKUPAN_PROTEIN"] = Helper::getReferenceIdByOrder("KETERCUKUPAN_PROTEIN", trim($line));
-                    // }
-                    // else if($extract == "KETERCUKUPAN_KARBO"){
-                    //     $params["LAPORAN_KETERCUKUPAN_KARBO"] = Helper::getReferenceIdByOrder("KETERCUKUPAN_KARBO", trim($line));
-                    // }
-                    // else if($extract == "BAB"){
-                    //     $params["LAPORAN_BAB"] = Helper::getReferenceIdByOrder("BAB", trim($line));
-                    // }
-                    // else if($extract == "AKTIVITAS"){
-                    //     $params["LAPORAN_AKTIVITAS"] = Helper::getReferenceIdByOrder("AKTIVITAS", trim($line));
-                    // }
+                    //
+                    else if($extract == "KETERCUKUPAN_MAKANAN"){
+                        $params["LAPORAN_KETERCUKUPAN_MAKANAN"] = Helper::getReferenceIdByOrder("KETERCUKUPAN_MAKANAN", trim($line));
+                    }
+                    else if($extract == "KETERCUKUPAN_LAUK"){
+                        $params["LAPORAN_KETERCUKUPAN_LAUK"] = Helper::getReferenceIdByOrder("KETERCUKUPAN_LAUK", trim($line));
+                    }
+                    else if($extract == "KETERCUKUPAN_SAYUR"){
+                        $params["LAPORAN_KETERCUKUPAN_SAYUR"] = Helper::getReferenceIdByOrder("KETERCUKUPAN_SAYUR", trim($line));
+                    }
+                    else if($extract == "KETERCUKUPAN_BUAH"){
+                        $params["LAPORAN_KETERCUKUPAN_BUAH"] = Helper::getReferenceIdByOrder("KETERCUKUPAN_BUAH", trim($line));
+                    }
+                    else if($extract == "KETERCUKUPAN_MINUM"){
+                        $params["LAPORAN_KETERCUKUPAN_MINUM"] = Helper::getReferenceIdByOrder("KETERCUKUPAN_MINUM", trim($line));
+                    }
+                    else if($extract == "KETERCUKUPAN_ASI"){
+                        $params["LAPORAN_KETERCUKUPAN_ASI"] = Helper::getReferenceIdByOrder("KETERCUKUPAN_ASI", trim($line));
+                    }
                 }
             }
-            $lastLaporan = DB::select("SELECT * FROM laporan WHERE LAPORAN_USER = ?", [$user->{"USER_ID"}]);
-            if(str_contains($msg, "BUAT LAPORAN BULANAN")){
-                if(count($lastLaporan) > 0){
-                    $lastLaporan = $lastLaporan[0];
-                    $params["LAPORAN_KETERCUKUPAN_MAKANAN"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_MAKANAN"};
-                    $params["LAPORAN_KETERCUKUPAN_LAUK"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_LAUK"};
-                    $params["LAPORAN_KETERCUKUPAN_SAYUR"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_SAYUR"};
-                    $params["LAPORAN_KETERCUKUPAN_BUAH"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_BUAH"};
-                    $params["LAPORAN_KETERCUKUPAN_MINUM"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_MINUM"};
-                    $params["LAPORAN_KETERCUKUPAN_ASI"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_ASI"};
-                }
-            }else{
-                if(count($lastLaporan) == 0){
-                    $replyContent = "\nMaaf, anda tidak memiliki laporan tinggi/panjang badan balita anda, ketik:";
-                    $replyContent .= "\n*MLCB* untuk MEMBUAT LAPORAN TINGGI/PANJANG BADAN";
-                    $this->multipleSendtext($jsonRequest["phone"], $replyContent, false);
-                    return;
-                }
-                $lastLaporan = $lastLaporan[0];
-                $params["LAPORAN_BB"] = $lastLaporan->{"LAPORAN_BB"};
-                $params["LAPORAN_TB"] = $lastLaporan->{"LAPORAN_TB"};
+            $addonParams = $this->cekPanjangBadan($msg, $user->{"USER_ID"}, $jsonRequest["phone"]);
+            if($addonParams === false){
+                return;
             }
             $params["LAPORAN_GENDER"] = $user->{"USER_CHILDREN_GENDER"};
             $params["LAPORAN_USIA"] = Helper::calculateAge($user->{"USER_CHILDREN_BIRTHDATE"});
+            $params = array_merge($params, $addonParams);
             $saveLaporan = DB::table("laporan")->insertGetId($params);
             
             $zscore = Helper::calculateZScore($params["LAPORAN_GENDER"], $params["LAPORAN_USIA"], $params["LAPORAN_TB"]);
@@ -457,6 +454,37 @@ class ApiController extends Controller
             error_log($e);
             $this->invalidInput($jsonRequest);
         }
+    }
+
+
+    private function cekPanjangBadan($msg, $user, $phone){
+        $params = [];
+        $lastLaporan = DB::select("SELECT * FROM laporan WHERE LAPORAN_USER = ?", [$user]);
+        if(str_contains($msg, "BUAT LAPORAN BULANAN")){
+            if(count($lastLaporan) == 0){
+
+            }else{
+                $lastLaporan = $lastLaporan[0];
+                $params["LAPORAN_KETERCUKUPAN_MAKANAN"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_MAKANAN"};
+                $params["LAPORAN_KETERCUKUPAN_LAUK"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_LAUK"};
+                $params["LAPORAN_KETERCUKUPAN_SAYUR"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_SAYUR"};
+                $params["LAPORAN_KETERCUKUPAN_BUAH"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_BUAH"};
+                $params["LAPORAN_KETERCUKUPAN_MINUM"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_MINUM"};
+                $params["LAPORAN_KETERCUKUPAN_ASI"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_ASI"};
+            }
+        }else{
+            if(count($lastLaporan) == 0){
+                $replyContent = "\nMaaf, anda tidak memiliki laporan tinggi/panjang badan balita anda, ketik:";
+                $replyContent .= "\n*MLCB* untuk MEMBUAT LAPORAN TINGGI/PANJANG BADAN";
+                $this->multipleSendtext($phone, $replyContent, false);
+                return false;
+            }else{
+                $lastLaporan = $lastLaporan[0];
+                $params["LAPORAN_BB"] = $lastLaporan->{"LAPORAN_BB"};
+                $params["LAPORAN_TB"] = $lastLaporan->{"LAPORAN_TB"};
+            }
+        }
+        return $params;
     }
 
 
@@ -481,17 +509,18 @@ class ApiController extends Controller
                 $laporan = $laporan[0];
                 $replyContent .= "\nRekap laporan terbaru buah hati anda";
                 $replyContent .= "\n=====================================";
-                $replyContent .= "\nTanggal\t\t\t: *" . Helper::tglIndo($laporan->{"LAPORAN_DATETIME"}, "LONG") . "*";
-                $replyContent .= "\nJenis Kelamin\t\t: *" . Helper::getReferenceInfo("GENDER", $laporan->{"LAPORAN_GENDER"}) . "*";
-                $replyContent .= "\nUsia\t\t\t: *" . $laporan->{"LAPORAN_USIA"}. " bulan*";
-                $replyContent .= "\nBerat Badan\t\t: *" . $laporan->{"LAPORAN_BB"}. " kg*";
-                $replyContent .= "\nTinggi Badan\t\t: *" . $laporan->{"LAPORAN_TB"}. " cm*";
-                // $replyContent .= "\nPola Makan\t\t: *" . Helper::getReferenceInfo("POLA_MAKAN", $laporan->{"LAPORAN_POLA_MAKAN"}) . "*";
-                // $replyContent .= "\nNafsu Makan\t\t: *" . Helper::getReferenceInfo("NAFSU_MAKAN", $laporan->{"LAPORAN_NAFSU_MAKAN"}) . "*";
-                // $replyContent .= "\nKetercukupan Lauk Pauk\t: *" . Helper::getReferenceInfo("KETERCUKUPAN_PROTEIN", $laporan->{"LAPORAN_KETERCUKUPAN_PROTEIN"}) . "*";
-                // $replyContent .= "\nKetercukupan Nasi/Makanan Pokok\t: *" . Helper::getReferenceInfo("KETERCUKUPAN_KARBO", $laporan->{"LAPORAN_KETERCUKUPAN_KARBO"}) . "*";
-                // $replyContent .= "\nFrekuensi BAB\t\t: *" . Helper::getReferenceInfo("BAB", $laporan->{"LAPORAN_BAB"}) . "*";
-                // $replyContent .= "\nAktivitas\t\t\t: *" . Helper::getReferenceInfo("AKTIVITAS", $laporan->{"LAPORAN_AKTIVITAS"}) . "*";
+                $replyContent .= "\nTanggal \t\t\t\t\t\t: *" . Helper::tglIndo($laporan->{"LAPORAN_DATETIME"}, "LONG") . "*";
+                $replyContent .= "\nJenis Kelamin \t: *" . Helper::getReferenceInfo("GENDER", $laporan->{"LAPORAN_GENDER"}) . "*";
+                $replyContent .= "\nUsia \t\t\t\t\t\t\t\t\t: *" . $laporan->{"LAPORAN_USIA"}. " bulan*";
+                $replyContent .= "\nBerat Badan \t\t: *" . $laporan->{"LAPORAN_BB"}. " kg*";
+                $replyContent .= "\nTinggi Badan \t\t: *" . $laporan->{"LAPORAN_TB"}. " cm*";
+                $replyContent .= "\n•";
+                $replyContent .= "\nKetercukupan makanan pokok :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_MAKANAN", $laporan->{"LAPORAN_KETERCUKUPAN_MAKANAN"}) . "*";
+                $replyContent .= "\n\nKetercukupan lauk pauk :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_LAUK", $laporan->{"LAPORAN_KETERCUKUPAN_LAUK"}) . "*";
+                $replyContent .= "\n\nKetercukupan sayur :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_SAYUR", $laporan->{"LAPORAN_KETERCUKUPAN_SAYUR"}) . "*";
+                $replyContent .= "\n\nKetercukupan buah :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_BUAH", $laporan->{"LAPORAN_KETERCUKUPAN_BUAH"}) . "*";
+                $replyContent .= "\n\nKetercukupan minum air mineral :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_MINUM", $laporan->{"LAPORAN_KETERCUKUPAN_MINUM"}) . "*";
+                $replyContent .= "\n\nKetercukupan ASI atau susu :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_ASI", $laporan->{"LAPORAN_KETERCUKUPAN_ASI"}) . "*";
                 $zscore = Helper::calculateZScore($laporan->{"LAPORAN_GENDER"}, $laporan->{"LAPORAN_USIA"}, $laporan->{"LAPORAN_TB"});
                 $stunting = Helper::zscoreInfo($zscore);
                 $replyContent .= "\n•";
@@ -518,9 +547,9 @@ class ApiController extends Controller
         $replyContent .= "\n*ME1* untuk EDUKASI TERKAIT *EDUKASI STUNTING*";
         $replyContent .= "\n*ME2* untuk EDUKASI TERKAIT *MP ASI*";
         $replyContent .= "\n*ME3* untuk EDUKASI TERKAIT *ASI EKSLUSIF*";
-        $replyContent .= "\n*ME4* untuk EDUKASI TERKAIT *PENCEGAHAN INFEKSI*";
-        $replyContent .= "\n*ME5* untuk EDUKASI TERKAIT *PERAWATAN KESEHATAN*";
-        //$replyContent .= "\n*MEL* untuk EDUKASI *LANGSUNG DENGAN BIDAN*";
+        $replyContent .= "\n*ME4* untuk EDUKASI TERKAIT *PEMANTAUAN TUMBUH KEMBANG*";
+        $replyContent .= "\n*ME5* untuk EDUKASI TERKAIT *IMUNISASI*";
+        $replyContent .= "\n*ME6* untuk EDUKASI TERKAIT *PEMENUHAN NUTRISI*";
         
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
         $this->multipleSendtext($jsonRequest["phone"], $finalReply);
@@ -536,14 +565,16 @@ class ApiController extends Controller
         }else if($msg == "ME3"){
             $kategori = "KATEGORI_ARTIKEL_ASI_EKSLUSIF";
         }else if($msg == "ME4"){
-            $kategori = "KATEGORI_ARTIKEL_PENCEGAHAN_INFEKSI";
+            $kategori = "KATEGORI_ARTIKEL_PEMANTAUAN";
         }else if($msg == "ME5"){
-            $kategori = "KATEGORI_ARTIKEL_PERAWATAN_KESEHATAN";
+            $kategori = "KATEGORI_ARTIKEL_IMUNISASI";
+        }else if($msg == "ME6"){
+            $kategori = "KATEGORI_ARTIKEL_NUTRISI";
         }
         error_log($kategori);
         $info = Helper::getReferenceInfo("KATEGORI_ARTIKEL", $kategori);
         $artikel = DB::select("
-            SELECT * FROM artikel WHERE ARTIKEL_KATEGORI = ?
+            SELECT * FROM artikel WHERE ARTIKEL_KATEGORI = ? AND ARTIKEL_CREATOR = 1
         ", [$kategori]);
 
         $replyHeader = "MENU EDUKASI ". strtoupper($info);
@@ -602,11 +633,12 @@ class ApiController extends Controller
         $aDokter["DOKTER_NAMA"] = "Dr. Evina";
         $aDokter["DOKTER_PHONE"] = "6281806437710";
         array_push($dokter, $aDokter);
+        $dokter = json_decode(json_encode($dokter));
 
         $replyHeader = "MENU KONSULTASI LANGSUNG DENGAN DOKTER";
         $replyContent = "\n";
         foreach($dokter as $key => $value){
-            $text = "Halo"  . $value->{"DOKTER_NAMA"} . "";
+            $text = "Halo, "  . $value->{"DOKTER_NAMA"} . "";
             $text = str_replace(" ", "%20", $text);
             $replyContent .= "\n " . ($key + 1) . ". " . $value->{"DOKTER_NAMA"};
             $replyContent .= "\n  hubungi di https://wa.me/" . $value->{"DOKTER_PHONE"} ."?text=" . $text . "";
@@ -629,43 +661,89 @@ class ApiController extends Controller
         $replyHeader = "MENU PROFIL ANDA";
         $replyContent = "\n";
         $replyContent .= "\n* _untuk MEMPERBARUI, salin dan ganti informasi pesan ini, lalu kirimkan_";
+        $replyContent .= "\n* _ganti TITIK TIGA sesuai angka yang dipilih_";
         $replyContent .= "\n";
+
         $replyContent .= "\nNama Lengkap";
         $replyContent .= "\n" . $user->{"USER_FULLNAME"};
         $replyContent .= "\n";
-        $replyContent .= "\nDaerah (pilih berdasarkan angka)";
-        foreach($daerah as $key => $value){
-            $replyContent .= "\n*". $value->{"DAERAH_ID"} ."* => " . $value->{"DAERAH_NAMA"};
-        }
-        $replyContent .= "\n" . $user->{"USER_DAERAH"};
-        $replyContent .= "\n";
+
+        // $replyContent .= "\nDaerah (pilih berdasarkan angka)";
+        // foreach($daerah as $key => $value){
+        //     $replyContent .= "\n*". $value->{"DAERAH_ID"} ."* => " . $value->{"DAERAH_NAMA"};
+        // }
+        // $replyContent .= "\n" . $user->{"USER_DAERAH"};
+        // $replyContent .= "\n";
+
         $replyContent .= "\nEmail";
         $replyContent .= "\n" . $user->{"USER_EMAIL"};
         $replyContent .= "\n";
+
         $replyContent .= "\nTanggal Lahir Orang Tua (contoh 2022-01-23)";
         $display = $user->{"USER_BIRTHDATE"} == null ? "0000-00-00" : $user->{"USER_BIRTHDATE"};
         $replyContent .= "\n" . $display;
         $replyContent .= "\n";
+
+        $replyContent .= "\nDesa";
+        $replyContent .= "\n" . $user->{"USER_DESA"};
+        $replyContent .= "\n";
+
         $replyContent .= "\nAlamat";
         $replyContent .= "\n" . $user->{"USER_ADDRESS"};
         $replyContent .= "\n";
+
         $replyContent .= "\nJenis Kelamin (pilih berdasarkan angka)";
         $replyContent .= "\n*1* => Laki-laki";
         $replyContent .= "\n*2* => Perempuan";
         $display = $user->{"USER_GENDER"} == "GENDER_UNDEFINED" ? "..." : Helper::getReferenceOrderById("GENDER", $user->{"USER_GENDER"});
         $replyContent .= "\n" . $display; 
         $replyContent .= "\n";
+
         $replyContent .= "\nNama Anak";
         $replyContent .= "\n" . $user->{"USER_CHILDREN_FULLNAME"};
         $replyContent .= "\n";
+
         $replyContent .= "\nTanggal Lahir Anak (contoh 2022-01-23)";
         $display = $user->{"USER_CHILDREN_BIRTHDATE"} == null ? "0000-00-00" : $user->{"USER_CHILDREN_BIRTHDATE"};
         $replyContent .= "\n" . $display;
         $replyContent .= "\n";
+
         $replyContent .= "\nJenis Kelamin Anak";
         $replyContent .= "\n*1* => Laki-laki";
         $replyContent .= "\n*2* => Perempuan";
         $display = $user->{"USER_CHILDREN_GENDER"} == "GENDER_UNDEFINED" ? "..." : Helper::getReferenceOrderById("GENDER", $user->{"USER_CHILDREN_GENDER"});
+        $replyContent .= "\n" . $display; 
+        $replyContent .= "\n";
+
+        $replyContent .= "\nMemberikan vitamin A (pilih berdasarkan angka)";
+        foreach(DB::table("_reference")->where("R_CATEGORY", "MEMBERI_VITAMINA")->where("R_ID", "NOT LIKE", "%UNDEFINED")->orderBy("R_ORDER", "ASC")->get() as $k => $v){
+            $replyContent .= "\n*".$v->{"R_ORDER"}."* => " . $v->{"R_INFO"};
+        }
+        $display = $user->{"USER_MEMBERI_VITAMINA"} == "MEMBERI_VITAMINA_UNDEFINED" ? "..." : Helper::getReferenceOrderById("MEMBERI_VITAMINA", $user->{"USER_MEMBERI_VITAMINA"});
+        $replyContent .= "\n" . $display; 
+        $replyContent .= "\n";
+
+        $replyContent .= "\nMemberikan obat cacing (pilih berdasarkan angka)";
+        foreach(DB::table("_reference")->where("R_CATEGORY", "MEMBERI_OBAT_CACING")->where("R_ID", "NOT LIKE", "%UNDEFINED")->orderBy("R_ORDER", "ASC")->get() as $k => $v){
+            $replyContent .= "\n*".$v->{"R_ORDER"}."* => " . $v->{"R_INFO"};
+        }
+        $display = $user->{"USER_MEMBERI_OBAT_CACING"} == "MEMBERI_OBAT_CACING_UNDEFINED" ? "..." : Helper::getReferenceOrderById("MEMBERI_OBAT_CACING", $user->{"USER_MEMBERI_OBAT_CACING"});
+        $replyContent .= "\n" . $display; 
+        $replyContent .= "\n";
+
+        $replyContent .= "\nSejak umur berapa ibu memberikan MPASI pada baduta (pilih berdasarkan angka)";
+        foreach(DB::table("_reference")->where("R_CATEGORY", "MEMBERI_ASI")->where("R_ID", "NOT LIKE", "%UNDEFINED")->orderBy("R_ORDER", "ASC")->get()as $k => $v){
+            $replyContent .= "\n*".$v->{"R_ORDER"}."* => " . $v->{"R_INFO"};
+        }
+        $display = $user->{"USER_MEMBERI_ASI"} == "MEMBERI_ASI_UNDEFINED" ? "..." : Helper::getReferenceOrderById("MEMBERI_ASI", $user->{"USER_MEMBERI_ASI"});
+        $replyContent .= "\n" . $display; 
+        $replyContent .= "\n";
+
+        $replyContent .= "\nSampai umur berapa ibu memberikan ASI pada baduta (pilih berdasarkan angka)";
+        foreach(DB::table("_reference")->where("R_CATEGORY", "MEMBERI_MPASI")->where("R_ID", "NOT LIKE", "%UNDEFINED")->orderBy("R_ORDER", "ASC")->get() as $k => $v){
+            $replyContent .= "\n*".$v->{"R_ORDER"}."* => " . $v->{"R_INFO"};
+        }
+        $display = $user->{"USER_MEMBERI_MPASI"} == "MEMBERI_MPASI_UNDEFINED" ? "..." : Helper::getReferenceOrderById("MEMBERI_MPASI", $user->{"USER_MEMBERI_MPASI"});
         $replyContent .= "\n" . $display; 
         $replyContent .= "\n";
 
@@ -696,16 +774,20 @@ class ApiController extends Controller
                     $extract = "FULLNAME";
                     $extractLine = $key + 1;
                 }
-                else if(str_contains($line, "Daerah (pilih berdasarkan angka)")){
-                    $extract = "DAERAH";
-                    $extractLine = $key + 1 + count($daerah);
-                }
+                // else if(str_contains($line, "Daerah (pilih berdasarkan angka)")){
+                //     $extract = "DAERAH";
+                //     $extractLine = $key + 1 + count($daerah);
+                // }
                 else if(str_contains($line, "Email")){
                     $extract = "EMAIL";
                     $extractLine = $key + 1;
                 }
                 else if(str_contains($line, "Tanggal Lahir Orang Tua (contoh 2022-01-23)")){
                     $extract = "BIRTHDATE";
+                    $extractLine = $key + 1;
+                }
+                else if(str_contains($line, "Desa")){
+                    $extract = "DESA";
                     $extractLine = $key + 1;
                 }
                 else if(str_contains($line, "Alamat")){
@@ -728,26 +810,67 @@ class ApiController extends Controller
                     $extract = "CHILDREN_GENDER";
                     $extractLine = $key + 1 + 2;
                 }
+                //
+                else if(str_contains($line, "Memberikan vitamin A (pilih berdasarkan angka)")){
+                    $extract = "MEMBERI_VITAMINA";
+                    $extractLine = $key + 1 + 6;
+                }
+                else if(str_contains($line, "Memberikan obat cacing (pilih berdasarkan angka)")){
+                    $extract = "MEMBERI_OBAT_CACING";
+                    $extractLine = $key + 1 + 6;
+                }
+                else if(str_contains($line, "Sejak umur berapa ibu memberikan MPASI pada baduta (pilih berdasarkan angka)")){
+                    $extract = "MEMBERI_MPASI";
+                    $extractLine = $key + 1 + 3;
+                }
+                else if(str_contains($line, "Sampai umur berapa ibu memberikan ASI pada baduta (pilih berdasarkan angka)")){
+                    $extract = "MEMBERI_ASI";
+                    $extractLine = $key + 1 + 3;
+                }
 
                 if($key == $extractLine){
                     if($extract == "FULLNAME"){
                         $params["USER_FULLNAME"] = trim($line);
-                    }else if($extract == "DAERAH"){
-                        $params["USER_DAERAH"] = trim($line);
-                    }else if($extract == "EMAIL"){
+                    }
+                    // else if($extract == "DAERAH"){
+                    //     $params["USER_DAERAH"] = trim($line);
+                    // }
+                    else if($extract == "EMAIL"){
                         $params["USER_EMAIL"] = trim($line);
-                    }else if($extract == "BIRTHDATE"){
+                    }
+                    else if($extract == "BIRTHDATE"){
                         $params["USER_BIRTHDATE"] = trim($line);
-                    }else if($extract == "ADDRESS"){
+                    }
+                    else if($extract == "DESA"){
+                        $params["USER_DESA"] = trim($line);
+                    }
+                    else if($extract == "ADDRESS"){
                         $params["USER_ADDRESS"] = trim($line);
-                    }else if($extract == "GENDER"){
+                    }
+                    else if($extract == "GENDER"){
                         $params["USER_GENDER"] = Helper::getReferenceIdByOrder("GENDER", trim($line));
-                    }else if($extract == "CHILDREN_FULLNAME"){
+                    }
+                    else if($extract == "CHILDREN_FULLNAME"){
                         $params["USER_CHILDREN_FULLNAME"] = trim($line);
-                    }else if($extract == "CHILDREN_BIRTHDATE"){
+                    }
+                    else if($extract == "CHILDREN_BIRTHDATE"){
                         $params["USER_CHILDREN_BIRTHDATE"] = trim($line);
-                    }else if($extract == "CHILDREN_GENDER"){
+                    }
+                    else if($extract == "CHILDREN_GENDER"){
                         $params["USER_CHILDREN_GENDER"] = Helper::getReferenceIdByOrder("GENDER", trim($line));
+                    }
+                    //
+                    else if($extract == "MEMBERI_VITAMINA"){
+                        $params["USER_MEMBERI_VITAMINA"] = Helper::getReferenceIdByOrder("MEMBERI_VITAMINA", trim($line));
+                    }
+                    else if($extract == "MEMBERI_OBAT_CACING"){
+                        $params["USER_MEMBERI_OBAT_CACING"] = Helper::getReferenceIdByOrder("MEMBERI_OBAT_CACING", trim($line));
+                    }
+                    else if($extract == "MEMBERI_MPASI"){
+                        $params["USER_MEMBERI_MPASI"] = Helper::getReferenceIdByOrder("MEMBERI_MPASI", trim($line));
+                    }
+                    else if($extract == "MEMBERI_ASI"){
+                        $params["USER_MEMBERI_ASI"] = Helper::getReferenceIdByOrder("MEMBERI_ASI", trim($line));
                     }
                 }
             }
@@ -784,10 +907,10 @@ class ApiController extends Controller
             $this->errorMessage = "jenis kelamin tidak valid";
             $valid = false;
         }
-        if($user->{"USER_DAERAH"} == 0){
-            $this->errorMessage = "daerah tidak valid";
-            $valid = false;
-        }
+        // if($user->{"USER_DAERAH"} == 0){
+        //     $this->errorMessage = "daerah tidak valid";
+        //     $valid = false;
+        // }
         if($user->{"USER_BIRTHDATE"} == null){
             $this->errorMessage = "tanggal lahir orang tua tidak valid";
             $valid = false;
@@ -807,6 +930,23 @@ class ApiController extends Controller
         }
         if($user->{"USER_CHILDREN_BIRTHDATE"} == "..." || $user->{"USER_CHILDREN_BIRTHDATE"} == "000-00-00"){
             $this->errorMessage = "tanggal lahir anak tidak valid";
+            $valid = false;
+        }
+        //
+        if($user->{"USER_MEMBERI_VITAMINA"} == "MEMBERI_VITAMINA_UNDEFINED" || $user->{"USER_MEMBERI_VITAMINA"} == ""){
+            $this->errorMessage = "pilihan 'pemberian vitamin A' tidak valid";
+            $valid = false;
+        }
+        if($user->{"USER_MEMBERI_OBAT_CACING"} == "MEMBERI_OBAT_CACING_UNDEFINED" || $user->{"USER_MEMBERI_OBAT_CACING"} == ""){
+            $this->errorMessage = "pilihan 'pemberian obat cacing' tidak valid";
+            $valid = false;
+        }
+        if($user->{"USER_MEMBERI_MPASI"} == "MEMBERI_MPASI_UNDEFINED" || $user->{"USER_MEMBERI_MPASI"} == ""){
+            $this->errorMessage = "pilihan 'pemberian MP-ASI' tidak valid";
+            $valid = false;
+        }
+        if($user->{"USER_MEMBERI_ASI"} == "MEMBERI_ASI_UNDEFINED" || $user->{"USER_MEMBERI_ASI"} == ""){
+            $this->errorMessage = "pilihan 'pemberian ASI' tidak valid";
             $valid = false;
         }
 
@@ -829,8 +969,191 @@ class ApiController extends Controller
     }
 
 
-    private function redirectProfil(){
+    public function toJson(){
+        $data = [];
 
+        /**/
+            $mlcb = "BUAT LAPORAN BULANAN
+
+            * salin dan isi dengan mengganti titik tiga pesan ini, lalu kirimkan
+            
+            Nama
+            Rasya
+            
+            Jenis Kelamin
+            Laki-laki
+            
+            Usia (bulan)
+            17
+            
+            Tinggi Badan (cm)
+            80
+            
+            Berat Badan (kg)
+            12
+            
+            pastikan semua titik tiga sudah terisi, lalu kirim pesan ini
+            •
+            (process code #MLCP)
+            
+            -----------------------------------------";
+        /**/
+
+        /**/
+            $mlcm = "BUAT LAPORAN MINGGUAN
+
+            * salin dan isi dengan mengganti titik tiga pesan ini, lalu kirimkan
+            
+            Nama
+            Rasya
+            
+            Jenis Kelamin
+            Laki-laki
+            
+            Usia (bulan)
+            17
+            
+            Ketercukupan makanan pokok (pilih berdasarkan angka)
+            1 => 5 sendok makan nasi dalam 1 porsi 
+            2 => 4 sendok makan nasi dalam 1 porsi 
+            3 => 3 sendok makan nasi dalam 1 porsi 
+            4 => Tidak diberikan
+            5 => Lainnya
+            1
+            
+            Ketercukupan lauk pauk (pilih berdasarkan angka)
+            1 => 3 potong daging sapi/ayam/ikan/telur dalam 1 porsi
+            2 => 2 potong daging sapi/ayam/ikan/telur dalam 1 porsi
+            3 => 1 potong daging sapi/ayam/ikan/telur dalam 1 porsi 
+            4 => 3 potong tempe/tahu dalam 1 porsi 
+            5 => 2 potong tempe/tahu dalam 1 porsi 
+            6 => 1 potong tempe/tahu dalam 1 porsi
+            7 => 3 potong makanan olahan (sosis/nugget/bakso) dalam 1 porsi 
+            8 => 2 potong makanan olahan (sosis/nugget/bakso) dalam 1 porsi 
+            9 => 1 potong makanan olahan (sosis/nugget/bakso) dalam 1 porsi 
+            10 => Tidak diberikan
+            11 => Lainnya
+            2
+            
+            Ketercukupan sayur (pilih berdasarkan angka)
+            1 => 1 mangkok sayur dalam 1 porsi 
+            2 => 3/4 mangkok sayur dalam 1 porsi 
+            3 => 1/2 mangkok sayur dalam 1 porsi 
+            4 => 1/4 mangkok sayur dalam 1 porsi
+            5 => Tidak diberikan
+            6 => Lainnya
+            3
+            
+            Ketercukupan buah (pilih berdasarkan angka)
+            1 => 3 potong buah dalam 1 porsi 
+            2 => 2 potong buah dalam 1 porsi 
+            3 => 1 potong dalam 1 porsi
+            4 => Tidak diberikan
+            5 => Lainnya
+            4
+            
+            Ketercukupan minum air mineral (pilih berdasarkan angka)
+            1 => 1 gelas dalam sekali minum 
+            2 => 3/4 gelas dalam sekali minum 
+            3 => 1/2 gelas dalam sekali minum 
+            4 => 1/4 gelas dalam sekali minum 
+            5 => Tidak diberikan
+            6 => Lainnya
+            5
+            
+            Ketercukupan ASI atau susu formula (pilih berdasarkan angka)
+            1 => > 10x ASI/ Susu Formula dalam sehari 
+            2 => 7-10x ASI/ Susu Formula dalam sehari 
+            3 => 3-6x ASI/ Susu Formula dalam sehari 
+            4 => < 3x ASI/ Susu Formula dalam sehari 
+            5 => Tidak diberikan
+            6 => Lainnya
+            6
+            
+            pastikan semua titik tiga sudah terisi, lalu kirim pesan ini
+            •
+            (process code #MLCP)
+            
+            -----------------------------------------";
+        /**/
+
+        /**/
+            $mpp = "MENU PROFIL ANDA
+
+            * untuk MEMPERBARUI, salin dan ganti informasi pesan ini, lalu kirimkan
+            * ganti titik tiga sesuai angka yang dipilih, lalu kirimkan
+            
+            Nama Lengkap
+            Badrul Akbar Al Muthohhar
+            
+            Email
+            badrulcr5@gmail.com
+            
+            Tanggal Lahir Orang Tua (contoh 2022-01-23)
+            2022-09-13
+            
+            Desa
+            Kaliurang
+            
+            Alamat
+            jl 123 oke
+            
+            Jenis Kelamin (pilih berdasarkan angka)
+            1 => Laki-laki
+            2 => Perempuan
+            1
+            
+            Nama Anak
+            Rasya
+            
+            Tanggal Lahir Anak (contoh 2022-01-23)
+            2022-09-13
+            
+            Jenis Kelamin Anak
+            1 => Laki-laki
+            2 => Perempuan
+            1
+            
+            Memberikan vitamin A (pilih berdasarkan angka)
+            1 => Ya, 1x
+            2 => Ya, 2x
+            3 => Ya, 3x
+            4 => Ya 4x
+            5 => Tidak diberikan
+            6 => Lainnya
+            5
+            
+            Memberikan obat cacing (pilih berdasarkan angka)
+            1 => Ya, 1x
+            2 => Ya, 2x
+            3 => Ya, 3x
+            4 => Ya 4x
+            5 => Tidak diberikan
+            6 => Lainnya
+            4
+            
+            Sejak umur berapa ibu memberikan MPASI pada baduta (pilih berdasarkan angka)
+            1 => < 6 bulan
+            2 => >= 6 bulan
+            3 => Tidak diberikan
+            3
+            
+            Sampai umur berapa ibu memberikan ASI pada baduta (pilih berdasarkan angka)
+            1 => < 6 bulan
+            2 => >= 6 bulan
+            3 => Tidak diberikan
+            2
+            
+            pastikan semua isian sudah terisi dan tidak ada titik 3 tersisa, lalu kirim pesan ini untuk MEMPERBARUI
+            •
+            (process code #MPP)
+            
+            -------------------------------------------------------
+            ketik 0 untuk kembali ke menu awal";
+        /**/
+
+        $data["k"] = $mpp;
+        return Helper::compose2("SUCCESS", "to JSON", $data);
     }
 
 
@@ -936,7 +1259,7 @@ class ApiController extends Controller
         if($message == false){
             $message = '_selamat_ *pagi* _*pengguna*_ http://badrulam.com ' . $this->code;
         }
-        $message .= "\n\n-----------------------------------------";
+        $message .= "\n\n-------------------------------------------------------";
         if($withFooter){
             $message .= "\n_ketik *0* untuk kembali ke menu awal_";
         }
