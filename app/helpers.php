@@ -329,11 +329,11 @@ class Helper {
 			->where("R_ORDER",$order)
 			->first();
 
-		if(isset($ref) > 0) {
+		if(isset($ref)) {
 			return $ref->{"R_ID"};
 		}
 	  	else {
-	  		return "";
+	  		return $order;
 	  	}
 	}
 
