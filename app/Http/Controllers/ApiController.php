@@ -184,7 +184,7 @@ class ApiController extends Controller
             $finalReply = "*" . $replyHeader . "*" . $replyContent;
             $this->multipleSendtext($jsonRequest["phone"], $finalReply);
 
-            $this->MLC($jsonRequest, $user);
+            $this->MLCM($jsonRequest, $user);
         }else{
             $finalReply = "*" . $replyHeader . "*" . $replyContent;
             $this->multipleSendtext($jsonRequest["phone"], $finalReply);
