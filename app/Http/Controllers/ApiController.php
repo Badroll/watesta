@@ -152,10 +152,10 @@ class ApiController extends Controller
             $this->MP($jsonRequest, $user);
         }else{
             $replyContent .= "\nBuat, lihat, dan monitor dari laporan pemeriksaan buah hati anda, ketik:";
-            $replyContent .= "\n*MLL* untuk MELIHAT DAFTAR LAPORAN ANDA";
             #$replyContent .= "\n*MLC* untuk INPUT DATA";
             $replyContent .= "\n*MLCB* untuk INPUT LAPORAN BULANAN";
             $replyContent .= "\n*MLCM* untuk INPUT LAPORAN MINGGUAN";
+            $replyContent .= "\n*MLL* untuk MELIHAT DAFTAR LAPORAN ANDA";
 
             $finalReply = "*" . $replyHeader . "*" . $replyContent;
             $this->multipleSendtext($jsonRequest["phone"], $finalReply);
