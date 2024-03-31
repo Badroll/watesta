@@ -601,6 +601,7 @@ class ApiController extends Controller
         $replyContent .= "\n*ME4* untuk EDUKASI TERKAIT *PEMANTAUAN TUMBUH KEMBANG*";
         $replyContent .= "\n*ME5* untuk EDUKASI TERKAIT *IMUNISASI*";
         $replyContent .= "\n*ME6* untuk EDUKASI TERKAIT *PEMENUHAN NUTRISI*";
+        $replyContent .= "\n*ME7* untuk EDUKASI TERKAIT *PERILAKU HIDUP BERSIH DAN SEHAT*";
         
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
         $this->multipleSendtext($jsonRequest["phone"], $finalReply);
