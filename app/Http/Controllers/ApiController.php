@@ -13,6 +13,7 @@ class ApiController extends Controller
     public $code;
     public $wabotFooterMessage;
     public $errorMessage = "";
+    public $callback = [false, false, false, false, false, false, false];
 
     public function __construct(){
         $this->wabotToken = Helper::getSetting("WABOT_TOKEN");
@@ -152,10 +153,25 @@ class ApiController extends Controller
             $this->MP($jsonRequest, $user);
         }else{
             $replyContent .= "\nBuat, lihat, dan monitor dari laporan pemeriksaan buah hati anda, ketik:";
-            #$replyContent .= "\n*MLC* untuk INPUT DATA";
             $replyContent .= "\n*MLCB* untuk INPUT LAPORAN BULANAN";
             $replyContent .= "\n*MLCM* untuk INPUT LAPORAN MINGGUAN";
             $replyContent .= "\n*MLL* untuk MELIHAT DAFTAR LAPORAN ANDA";
+
+            // APA GAK DICEK DI MENU DIAGNOSA SAJA?
+            // $lastReport = DB::select("
+            //     SELECT * FROM laporan WHERE LAPORAN_USER = ?
+            // ", [$user->{"USER_ID"}]);
+            // if(count($lastReport) > 0){
+            //     $lastReport = $lastReport[0];
+            //     $timestamp1 = strtotime($lastReport->{"LAPORAN_DATETIME"});
+            //     $timestamp2 = strtotime(date("Y-m-d H:i:s"));
+            //     $diffInSeconds = $timestamp2 - $timestamp1;
+            //     $diffInDays = $diffInSeconds / (60 * 60 * 24);
+            //     if($diffInDays > 30){
+            //         $replyContent .= "\n\n_Anda belum memperbarui informasi TINGGI BADAN dan BERAT BADAN_";
+            //         $replyContent .= "\n\n_ketik *MLCB* untuk MENGINPUT";
+            //     }
+            // }
 
             $finalReply = "*" . $replyHeader . "*" . $replyContent;
             $this->multipleSendtext($jsonRequest["phone"], $finalReply);
@@ -436,19 +452,25 @@ class ApiController extends Controller
             }
             $params["LAPORAN_GENDER"] = $user->{"USER_CHILDREN_GENDER"};
             $params["LAPORAN_USIA"] = Helper::calculateAge($user->{"USER_CHILDREN_BIRTHDATE"});
+            // $flagMingguan = false;
+            // if(isset($params["LAPORAN_KETERCUKUPAN_MAKANAN"])){
+            //     $flagMingguan = true;
+            // }
             $params = array_merge($params, $addonParams);
             $saveLaporan = DB::table("laporan")->insertGetId($params);
             
-            $zscore = Helper::calculateZScore($params["LAPORAN_GENDER"], $params["LAPORAN_USIA"], $params["LAPORAN_TB"]);
-            $stunting = Helper::zscoreInfo($zscore);
-            $replyHeader = "HASIL LAPORAN";
-            $replyContent = "\n";
-            $replyContent .= "\n*Z-Score = " . $zscore . " SD*";
-            $replyContent .= "\nBuah hati anda berada pada kondisi *_" . strtoupper($stunting) . "_*";
-            $finalReply = "*" . $replyHeader . "*" . $replyContent;
-            
-            $finalReply = "*" . $replyHeader . "*" . $replyContent;
-            $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
+            // NGAPAIN MANUNAL?
+            // $zscore = Helper::calculateZScore($params["LAPORAN_GENDER"], $params["LAPORAN_USIA"], $params["LAPORAN_TB"]);
+            // $stunting = Helper::zscoreInfo($zscore);
+            // $replyHeader = "HASIL LAPORAN";
+            // $replyContent = "\n";
+            // $replyContent .= "\n*Z-Score = " . $zscore . " SD*";
+            // $replyContent .= "\nBuah hati anda berada pada kondisi *_" . strtoupper($stunting) . "_*";
+            // $finalReply = "*" . $replyHeader . "*" . $replyContent;
+            // $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
+
+            // TAMPILKAN SAJA HASIL DIAGNOSANYA! HEHE
+            $this->MD($jsonRequest, $user, $params);
 
         }catch(Exception $e){
             error_log($e);
@@ -488,7 +510,7 @@ class ApiController extends Controller
     }
 
 
-    private function MD($jsonRequest, $user){//OK
+    private function MD($jsonRequest, $user, $updateParams = false){//OK
         $replyHeader = "MENU DIAGNOSA DAN REKOMENDASI";
         $replyContent = "\n";
 
@@ -507,28 +529,50 @@ class ApiController extends Controller
 
             if(count($laporan) > 0){
                 $laporan = $laporan[0];
-                $replyContent .= "\nRekap laporan terbaru buah hati anda";
-                $replyContent .= "\n=====================================";
-                $replyContent .= "\nTanggal \t\t\t\t\t\t: *" . Helper::tglIndo($laporan->{"LAPORAN_DATETIME"}, "LONG") . "*";
-                $replyContent .= "\nJenis Kelamin \t: *" . Helper::getReferenceInfo("GENDER", $laporan->{"LAPORAN_GENDER"}) . "*";
-                $replyContent .= "\nUsia \t\t\t\t\t\t\t\t\t: *" . $laporan->{"LAPORAN_USIA"}. " bulan*";
-                $replyContent .= "\nBerat Badan \t\t: *" . $laporan->{"LAPORAN_BB"}. " kg*";
-                $replyContent .= "\nTinggi Badan \t\t: *" . $laporan->{"LAPORAN_TB"}. " cm*";
-                $replyContent .= "\n•";
-                $replyContent .= "\nKetercukupan makanan pokok :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_MAKANAN", $laporan->{"LAPORAN_KETERCUKUPAN_MAKANAN"}) . "*";
-                $replyContent .= "\n\nKetercukupan lauk pauk :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_LAUK", $laporan->{"LAPORAN_KETERCUKUPAN_LAUK"}) . "*";
-                $replyContent .= "\n\nKetercukupan sayur :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_SAYUR", $laporan->{"LAPORAN_KETERCUKUPAN_SAYUR"}) . "*";
-                $replyContent .= "\n\nKetercukupan buah :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_BUAH", $laporan->{"LAPORAN_KETERCUKUPAN_BUAH"}) . "*";
-                $replyContent .= "\n\nKetercukupan minum air mineral :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_MINUM", $laporan->{"LAPORAN_KETERCUKUPAN_MINUM"}) . "*";
-                $replyContent .= "\n\nKetercukupan ASI atau susu :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_ASI", $laporan->{"LAPORAN_KETERCUKUPAN_ASI"}) . "*";
-                $zscore = Helper::calculateZScore($laporan->{"LAPORAN_GENDER"}, $laporan->{"LAPORAN_USIA"}, $laporan->{"LAPORAN_TB"});
-                $stunting = Helper::zscoreInfo($zscore);
-                $replyContent .= "\n•";
-                $replyContent .= "\nHasil Perhitungan : *" . $zscore . " SD*";
-                $replyContent .= "\nBuah hati anda berada pada kondisi : *" . strtoupper($stunting). "*";
-                $replyContent .= "\nRekomendasi untuk buah hati anda :";
-                $replyContent .= "\n".Helper::getRekomendasi($zscore);
 
+                $timestamp1 = strtotime($laporan->{"LAPORAN_DATETIME"});
+                $timestamp2 = strtotime(date("Y-m-d H:i:s"));
+                $diffInSeconds = $timestamp2 - $timestamp1;
+                $diffInDays = $diffInSeconds / (60 * 60 * 24);
+                // cek triger pemantauan tumbuh kembang
+                if($diffInDays > 30){
+                    $replyContent .= "\n\n_Anda belum memperbarui informasi TINGGI BADAN dan BERAT BADAN_";
+                    $replyContent .= "\n\n_ketik *MLCB* untuk MENGINPUT";
+                    $this->callback[5] = true;
+                }
+                else{
+                    $replyContent .= "\nRekap laporan terbaru buah hati anda";
+                    $replyContent .= "\n=====================================";
+                    $replyContent .= "\nTanggal \t\t\t\t\t\t: *" . Helper::tglIndo($laporan->{"LAPORAN_DATETIME"}, "LONG") . "*";
+                    $replyContent .= "\nJenis Kelamin \t: *" . Helper::getReferenceInfo("GENDER", $laporan->{"LAPORAN_GENDER"}) . "*";
+                    $replyContent .= "\nUsia \t\t\t\t\t\t\t\t\t: *" . $laporan->{"LAPORAN_USIA"}. " bulan*";
+                    $replyContent .= "\nBerat Badan \t\t: *" . $laporan->{"LAPORAN_BB"}. " kg*";
+                    $replyContent .= "\nTinggi Badan \t\t: *" . $laporan->{"LAPORAN_TB"}. " cm*";
+                    $replyContent .= "\n•";
+                    $replyContent .= "\nKetercukupan makanan pokok :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_MAKANAN", $laporan->{"LAPORAN_KETERCUKUPAN_MAKANAN"}) . "*";
+                    $replyContent .= "\n\nKetercukupan lauk pauk :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_LAUK", $laporan->{"LAPORAN_KETERCUKUPAN_LAUK"}) . "*";
+                    $replyContent .= "\n\nKetercukupan sayur :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_SAYUR", $laporan->{"LAPORAN_KETERCUKUPAN_SAYUR"}) . "*";
+                    $replyContent .= "\n\nKetercukupan buah :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_BUAH", $laporan->{"LAPORAN_KETERCUKUPAN_BUAH"}) . "*";
+                    $replyContent .= "\n\nKetercukupan minum air mineral :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_MINUM", $laporan->{"LAPORAN_KETERCUKUPAN_MINUM"}) . "*";
+                    $replyContent .= "\n\nKetercukupan ASI atau susu :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_ASI", $laporan->{"LAPORAN_KETERCUKUPAN_ASI"}) . "*";
+                    $zscore = Helper::calculateZScore($laporan->{"LAPORAN_GENDER"}, $laporan->{"LAPORAN_USIA"}, $laporan->{"LAPORAN_TB"});
+                    $stunting = Helper::zscoreInfo($zscore);
+                    $replyContent .= "\n•";
+                    $replyContent .= "\nHasil Perhitungan : *" . $zscore . " SD*";
+                    $replyContent .= "\nBuah hati anda berada pada kondisi : *" . strtoupper($stunting). "*";
+                    $replyContent .= "\nRekomendasi untuk buah hati anda :";
+                    //$replyContent .= "\n".Helper::getRekomendasi($zscore);
+
+                    // cek trigger stunting
+                    if($zscore <= -2){
+                        $this->callback[0] = true;
+                    }
+
+                    // cek trigger nutrisi
+                    if(isset($updateParams["LAPORAN_KETERCUKUPAN_MAKANAN"])){ // mewakili
+                        
+                    }
+                }
             }else{
                 $replyContent .= "\nAnda tidak memiliki laporan apapun, yuk laporkan perkembangan buah hati anda, ketik:";
                 $replyContent .= "\n*MLCB* untuk MEMBUAT LAPORAN";
@@ -536,14 +580,21 @@ class ApiController extends Controller
                 
             $finalReply = "*" . $replyHeader . "*" . $replyContent;
             $this->multipleSendtext($jsonRequest["phone"], $finalReply);
+            // A.K.A trigger
+            if($this->callback[0]){
+                $this->MEX($jsonRequest, "ME1");
+            }
+            if($this->callback[5]){
+                $this->MEX($jsonRequest, "ME1");
+            }
         }
     }
 
 
     private function ME($jsonRequest){//OK
-        $replyHeader = "MENU KONSULATSI";
+        $replyHeader = "MENU EDUKASI";
         $replyContent = "\n";
-        $replyContent .= "\Edukasi untuk kesehatan buah hati anda melalui layanan berikut, ketik:";
+        $replyContent .= "\nEdukasi untuk kesehatan buah hati anda melalui layanan berikut, ketik:";
         $replyContent .= "\n*ME1* untuk EDUKASI TERKAIT *EDUKASI STUNTING*";
         $replyContent .= "\n*ME2* untuk EDUKASI TERKAIT *MP ASI*";
         $replyContent .= "\n*ME3* untuk EDUKASI TERKAIT *ASI EKSLUSIF*";
@@ -570,11 +621,13 @@ class ApiController extends Controller
             $kategori = "KATEGORI_ARTIKEL_IMUNISASI";
         }else if($msg == "ME6"){
             $kategori = "KATEGORI_ARTIKEL_NUTRISI";
+        }else if($msg == "ME7"){
+            $kategori = "KATEGORI_ARTIKEL_PHBS";
         }
         error_log($kategori);
         $info = Helper::getReferenceInfo("KATEGORI_ARTIKEL", $kategori);
         $artikel = DB::select("
-            SELECT * FROM artikel WHERE ARTIKEL_KATEGORI = ? AND ARTIKEL_CREATOR = 1
+            SELECT * FROM artikel WHERE ARTIKEL_KATEGORI = ? AND ARTIKEL_CREATOR = 1 AND ARTIKEL_SUB_ID = 0
         ", [$kategori]);
 
         $replyHeader = "MENU EDUKASI ". strtoupper($info);
@@ -582,7 +635,7 @@ class ApiController extends Controller
         $replyContent .= "\n";
         foreach($artikel as $key => $value){
             $replyContent .= "\n• *" . substr($value->{"ARTIKEL_JUDUL"}, 0, 50) . "*";
-            $replyContent .= "\n   selengkapnya di https://wa.me/62882008074530?text=MED" . $value->{"ARTIKEL_ID"} . "";
+            $replyContent .= "\n   selengkapnya di https://wa.me/".env("VAR_WABLAS_NO")."?text=MED" . $value->{"ARTIKEL_ID"} . "";
             $replyContent .= "\n";
         }
         if(count($artikel) == 0){
@@ -612,7 +665,19 @@ class ApiController extends Controller
             $artikel = $artikel[0];
             $replyHeader = $artikel->{"ARTIKEL_JUDUL"};
             $replyContent = "\n";
-            $replyContent .= "\n" . $artikel->{"ARTIKEL_DESKRIPSI"};
+            
+            if($artikel->{"ARTIKEL_DESKRIPSI"} == ""){ // sub detail
+                $subArtikel = DB::select("
+                    SELECT * FROM artikel WHERE ARTIKEL_SUB_ID = ?
+                ", [$artikel->{"ARTIKEL_ID"}]);
+                foreach($subArtikel as $key => $value){
+                    $replyContent .= "\n• *" . substr($value->{"ARTIKEL_JUDUL"}, 0, 50) . "*";
+                    $replyContent .= "\n   selengkapnya di https://wa.me/".env("VAR_WABLAS_NO")."?text=MED" . $value->{"ARTIKEL_ID"} . "";
+                    $replyContent .= "\n";
+                }
+            }else{
+                $replyContent .= "\n" . $artikel->{"ARTIKEL_DESKRIPSI"};
+            }
             
             $finalReply = "*" . $replyHeader . "*" . $replyContent;
             $this->multipleSendtext($jsonRequest["phone"], $finalReply);
