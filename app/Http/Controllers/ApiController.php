@@ -14,6 +14,25 @@ class ApiController extends Controller
     public $wabotFooterMessage;
     public $errorMessage = "";
     public $callback = [false, false, false, false, false, false, false];
+    /*
+
+    0.	Stunting
+    1.	Nutrisi
+    2.	MPASI
+    3.	PHBS
+    4.	ASI
+    5.	Pemantauan Tumbuh Kembang
+    6.	Imunisasi
+
+    ME1 untuk EDUKASI TERKAIT EDUKASI STUNTING
+    ME2 untuk EDUKASI TERKAIT MP ASI
+    ME3 untuk EDUKASI TERKAIT ASI EKSLUSIF
+    ME4 untuk EDUKASI TERKAIT PEMANTAUAN TUMBUH KEMBANG
+    ME5 untuk EDUKASI TERKAIT IMUNISASI
+    ME6 untuk EDUKASI TERKAIT PEMENUHAN NUTRISI
+    ME7 untuk EDUKASI TERKAIT PERILAKU HIDUP BERSIH DAN SEHAT
+
+    */
 
     public function __construct(){
         $this->wabotToken = Helper::getSetting("WABOT_TOKEN");
@@ -534,10 +553,11 @@ class ApiController extends Controller
                 $timestamp2 = strtotime(date("Y-m-d H:i:s"));
                 $diffInSeconds = $timestamp2 - $timestamp1;
                 $diffInDays = $diffInSeconds / (60 * 60 * 24);
+
                 // cek triger pemantauan tumbuh kembang
                 if($diffInDays > 30){
-                    $replyContent .= "\n\n_Anda belum memperbarui informasi TINGGI BADAN dan BERAT BADAN_";
-                    $replyContent .= "\n\n_ketik *MLCB* untuk MENGINPUT";
+                    $replyContent .= "\n\n_Anda belum memperbarui informasi TINGGI BADAN dan BERAT BADAN selama sebulan/lebih_";
+                    $replyContent .= "\n\n_ketik *MLCB* untuk MEMPERBARUI";
                     $this->callback[5] = true;
                 }
                 else{
@@ -569,8 +589,26 @@ class ApiController extends Controller
                     }
 
                     // cek trigger nutrisi
-                    if(isset($updateParams["LAPORAN_KETERCUKUPAN_MAKANAN"])){ // mewakili
-                        
+                    $usia = intval($laporan->{"LAPORAN_USIA"});
+                    $ketercukupanSalah = 0;
+                    $kategoriKetercukupan = ["LAPORAN_KETERCUKUPAN_MAKANAN", "KETERCUKUPAN_LAUK", "KETERCUKUPAN_SAYUR", "KETERCUKUPAN_BUAH", "KETERCUKUPAN_MINUM", "MEMBERI_ASI"];
+                    foreach($kategoriKetercukupan as $k => $ktg){
+                        if(isset($updateParams[$ktg])){
+                            $range = DB::table("_reference")->where("R_ID", $updateParams[$ktg])->first();
+                            $range = trim($range->{"R_AGE_RANGE"});
+                            if($range != ""){
+                                $bulans = explode("-", $range);
+                                if(($usia >= intval($bulans[0]) && $usia <= intval($bulans[1])) == false) {
+                                    $ketercukupanSalah ++;
+                                }
+                            }else{
+                                $ketercukupanSalah ++;
+                            }
+                        }
+                    }
+                    if($ketercukupanSalah > 1){
+                        $replyContent .= "\n\n*Buah hati anda perlu ketercukupan nutrisi lebih*";
+                        $this->callback[1] = true;
                     }
                 }
             }else{
@@ -584,8 +622,11 @@ class ApiController extends Controller
             if($this->callback[0]){
                 $this->MEX($jsonRequest, "ME1");
             }
+            if($this->callback[1]){
+                $this->MEX($jsonRequest, "ME6");
+            }
             if($this->callback[5]){
-                $this->MEX($jsonRequest, "ME1");
+                $this->MEX($jsonRequest, "ME4");
             }
         }
     }
@@ -813,6 +854,14 @@ class ApiController extends Controller
         $replyContent .= "\n" . $display; 
         $replyContent .= "\n";
 
+        $replyContent .= "\nApakah baduta anda sering sakit?";
+        foreach(DB::table("_reference")->where("R_CATEGORY", "SERING_SAKIT")->orderBy("R_ORDER", "ASC")->get() as $k => $v){
+            $replyContent .= "\n*".$v->{"R_ORDER"}."* => " . $v->{"R_INFO"};
+        }
+        $display = $user->{"USER_SERING_SAKIT"} == "SERING_SAKIT_UNDEFINED" ? "..." : Helper::getReferenceOrderById("SERING_SAKIT", $user->{"USER_SERING_SAKIT"});
+        $replyContent .= "\n" . $display; 
+        $replyContent .= "\n";
+
         $replyContent .= "\n*_pastikan semua isian sudah terisi dan tidak ada titik 3 tersisa, lalu kirim pesan ini untuk MEMPERBARUI_*";
         $replyContent .= "\n•";
         $replyContent .= "\n_(process code #MPP)_";
@@ -893,6 +942,10 @@ class ApiController extends Controller
                     $extract = "MEMBERI_ASI";
                     $extractLine = $key + 1 + 3;
                 }
+                else if(str_contains($line, "Apakah baduta anda sering sakit?")){
+                    $extract = "SERING_SAKIT";
+                    $extractLine = $key + 1 + 2;
+                }
 
                 if($key == $extractLine){
                     if($extract == "FULLNAME"){
@@ -938,6 +991,9 @@ class ApiController extends Controller
                     else if($extract == "MEMBERI_ASI"){
                         $params["USER_MEMBERI_ASI"] = Helper::getReferenceIdByOrder("MEMBERI_ASI", trim($line));
                     }
+                    else if($extract == "SERING_SAKIT"){
+                        $params["USER_SERING_SAKIT"] = Helper::getReferenceIdByOrder("SERING_SAKIT", trim($line));
+                    }
                 }
             }
 
@@ -949,12 +1005,77 @@ class ApiController extends Controller
 
                 $replyHeader = "PROFIL ANDA BERHASIL DIPERBARUI";
                 $replyContent = "\n";
-                $replyContent .= "\n_kembali ke menu awal..._";
+                //$replyContent .= "\n_kembali ke menu awal..._";
+
+                // cek triger
+                //
+                $range = DB::table("_reference")->where("R_ID", $params["MEMBERI_VITAMINA"])->first();
+                $range = trim($range->{"R_AGE_RANGE"});
+                if($range != ""){
+                    $bulans = explode("-", $range);
+                    if(($usia >= intval($bulans[0]) && $usia <= intval($bulans[1])) == false) {
+                        $this->callback[6] = true;
+                    }
+                }else{
+                    $this->callback[6] = true;
+                }
+
+                //
+                $range = DB::table("_reference")->where("R_ID", $params["MEMBERI_OBAT_CACING"])->first();
+                $range = trim($range->{"R_AGE_RANGE"});
+                if($range != ""){
+                    $bulans = explode("-", $range);
+                    if(($usia >= intval($bulans[0]) && $usia <= intval($bulans[1])) == false) {
+                        $this->callback[6] = true;
+                    }
+                }else{
+                    $this->callback[6] = true;
+                }
+
+                //
+                $range = DB::table("_reference")->where("R_ID", $params["MEMBERI_MPASI"])->first();
+                $range = trim($range->{"R_AGE_RANGE"});
+                if($range != "Y"){
+                    $this->callback[2] = true;
+                }
+                $range = DB::table("_reference")->where("R_ID", $params["MEMBERI_ASI"])->first();
+                $range = trim($range->{"R_AGE_RANGE"});
+                if($range != "Y"){
+                    $this->callback[4] = true;
+                }
+                $range = DB::table("_reference")->where("R_ID", $params["SERING_SAKIT"])->first();
+                $range = trim($range->{"R_AGE_RANGE"});
+                if($range != "Y"){
+                    $this->callback[3] = true;
+                }
+
 
                 $finalReply = "*" . $replyHeader . "*" . $replyContent;
                 $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
 
-                $this->menu($jsonRequest);
+                if($this->callback[0]){
+                    $this->MEX($jsonRequest, "ME1");
+                }
+                if($this->callback[1]){
+                    $this->MEX($jsonRequest, "ME6");
+                }
+                if($this->callback[2]){
+                    $this->MEX($jsonRequest, "ME2");
+                }
+                if($this->callback[3]){
+                    $this->MEX($jsonRequest, "ME7");
+                }
+                if($this->callback[4]){
+                    $this->MEX($jsonRequest, "ME2");
+                }
+                if($this->callback[5]){
+                    $this->MEX($jsonRequest, "ME4");
+                }
+                if($this->callback[6]){
+                    $this->MEX($jsonRequest, "ME5");
+                }
+
+                //$this->menu($jsonRequest);
             }
 
         }catch(Exception $e){
@@ -1013,6 +1134,10 @@ class ApiController extends Controller
         }
         if($user->{"USER_MEMBERI_ASI"} == "MEMBERI_ASI_UNDEFINED" || $user->{"USER_MEMBERI_ASI"} == ""){
             $this->errorMessage = "pilihan 'pemberian ASI' tidak valid";
+            $valid = false;
+        }
+        if($user->{"USER_SERING_SAKIT"} == "SERING_SAKIT_UNDEFINED" || $user->{"USER_SERING_SAKIT"} == ""){
+            $this->errorMessage = "jawaban 'apakah sering sakit' tidak valid";
             $valid = false;
         }
 
