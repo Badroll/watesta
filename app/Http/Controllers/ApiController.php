@@ -591,7 +591,7 @@ class ApiController extends Controller
                     // cek trigger nutrisi
                     $usia = intval($laporan->{"LAPORAN_USIA"});
                     $ketercukupanSalah = 0;
-                    $kategoriKetercukupan = ["LAPORAN_KETERCUKUPAN_MAKANAN", "KETERCUKUPAN_LAUK", "KETERCUKUPAN_SAYUR", "KETERCUKUPAN_BUAH", "KETERCUKUPAN_MINUM", "MEMBERI_ASI"];
+                    $kategoriKetercukupan = ["LAPORAN_KETERCUKUPAN_MAKANAN", "LAPORAN_KETERCUKUPAN_LAUK", "LAPORAN_KETERCUKUPAN_SAYUR", "LAPORAN_KETERCUKUPAN_BUAH", "LAPORAN_KETERCUKUPAN_MINUM", "LAPORAN_KETERCUKUPAN_ASI"];
                     foreach($kategoriKetercukupan as $k => $ktg){
                         if(isset($updateParams[$ktg])){
                             $range = DB::table("_reference")->where("R_ID", $updateParams[$ktg])->first();
