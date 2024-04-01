@@ -855,7 +855,7 @@ class ApiController extends Controller
         $replyContent .= "\n";
 
         $replyContent .= "\nApakah baduta anda sering sakit?";
-        foreach(DB::table("_reference")->where("R_CATEGORY", "SERING_SAKIT")->orderBy("R_ORDER", "ASC")->get() as $k => $v){
+        foreach(DB::table("_reference")->where("R_CATEGORY", "SERING_SAKIT")->where("R_ID", "NOT LIKE", "%UNDEFINED")->orderBy("R_ORDER", "ASC")->get() as $k => $v){
             $replyContent .= "\n*".$v->{"R_ORDER"}."* => " . $v->{"R_INFO"};
         }
         $display = $user->{"USER_SERING_SAKIT"} == "SERING_SAKIT_UNDEFINED" ? "..." : Helper::getReferenceOrderById("SERING_SAKIT", $user->{"USER_SERING_SAKIT"});
