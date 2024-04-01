@@ -568,13 +568,15 @@ class ApiController extends Controller
                     $replyContent .= "\nUsia \t\t\t\t\t\t\t\t\t: *" . $laporan->{"LAPORAN_USIA"}. " bulan*";
                     $replyContent .= "\nBerat Badan \t\t: *" . $laporan->{"LAPORAN_BB"}. " kg*";
                     $replyContent .= "\nTinggi Badan \t\t: *" . $laporan->{"LAPORAN_TB"}. " cm*";
-                    $replyContent .= "\n•";
-                    $replyContent .= "\nKetercukupan makanan pokok :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_MAKANAN", $laporan->{"LAPORAN_KETERCUKUPAN_MAKANAN"}) . "*";
-                    $replyContent .= "\n\nKetercukupan lauk pauk :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_LAUK", $laporan->{"LAPORAN_KETERCUKUPAN_LAUK"}) . "*";
-                    $replyContent .= "\n\nKetercukupan sayur :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_SAYUR", $laporan->{"LAPORAN_KETERCUKUPAN_SAYUR"}) . "*";
-                    $replyContent .= "\n\nKetercukupan buah :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_BUAH", $laporan->{"LAPORAN_KETERCUKUPAN_BUAH"}) . "*";
-                    $replyContent .= "\n\nKetercukupan minum air mineral :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_MINUM", $laporan->{"LAPORAN_KETERCUKUPAN_MINUM"}) . "*";
-                    $replyContent .= "\n\nKetercukupan ASI atau susu :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_ASI", $laporan->{"LAPORAN_KETERCUKUPAN_ASI"}) . "*";
+                    if(isset($laporan->{"LAPORAN_KETERCUKUPAN_MAKANAN"})){
+                        $replyContent .= "\n•";
+                        $replyContent .= "\nKetercukupan makanan pokok :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_MAKANAN", $laporan->{"LAPORAN_KETERCUKUPAN_MAKANAN"}) . "*";
+                        $replyContent .= "\n\nKetercukupan lauk pauk :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_LAUK", $laporan->{"LAPORAN_KETERCUKUPAN_LAUK"}) . "*";
+                        $replyContent .= "\n\nKetercukupan sayur :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_SAYUR", $laporan->{"LAPORAN_KETERCUKUPAN_SAYUR"}) . "*";
+                        $replyContent .= "\n\nKetercukupan buah :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_BUAH", $laporan->{"LAPORAN_KETERCUKUPAN_BUAH"}) . "*";
+                        $replyContent .= "\n\nKetercukupan minum air mineral :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_MINUM", $laporan->{"LAPORAN_KETERCUKUPAN_MINUM"}) . "*";
+                        $replyContent .= "\n\nKetercukupan ASI atau susu :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_ASI", $laporan->{"LAPORAN_KETERCUKUPAN_ASI"}) . "*";
+                    }
                     $zscore = Helper::calculateZScore($laporan->{"LAPORAN_GENDER"}, $laporan->{"LAPORAN_USIA"}, $laporan->{"LAPORAN_TB"});
                     $stunting = Helper::zscoreInfo($zscore);
                     $replyContent .= "\n•";
@@ -1010,43 +1012,50 @@ class ApiController extends Controller
                 // cek triger
                 $usia = Helper::calculateAge($params["USER_CHILDREN_BIRTHDATE"]);
                 //
-                $range = DB::table("_reference")->where("R_ID", $params["MEMBERI_VITAMINA"])->first();
+                $range = DB::table("_reference")->where("R_ID", $params["USER_MEMBERI_VITAMINA"])->first();
                 $range = trim($range->{"R_AGE_RANGE"});
                 if($range != ""){
                     $bulans = explode("-", $range);
                     if(($usia >= intval($bulans[0]) && $usia <= intval($bulans[1])) == false) {
+                        $replyContent .= "\n_• Asupan Vitamin A perlu perbaikan_";
                         $this->callback[6] = true;
                     }
                 }else{
+                    $replyContent .= "\n_• Asupan Vitamin A perlu perbaikan_";
                     $this->callback[6] = true;
                 }
 
                 //
-                $range = DB::table("_reference")->where("R_ID", $params["MEMBERI_OBAT_CACING"])->first();
+                $range = DB::table("_reference")->where("R_ID", $params["USER_MEMBERI_OBAT_CACING"])->first();
                 $range = trim($range->{"R_AGE_RANGE"});
                 if($range != ""){
                     $bulans = explode("-", $range);
                     if(($usia >= intval($bulans[0]) && $usia <= intval($bulans[1])) == false) {
+                        $replyContent .= "\n_• Asupan Obat Cacin perlu perbaikan_";
                         $this->callback[6] = true;
                     }
                 }else{
+                    $replyContent .= "\n_• Asupan Obat Cacin perlu perbaikan_";
                     $this->callback[6] = true;
                 }
 
                 //
-                $range = DB::table("_reference")->where("R_ID", $params["MEMBERI_MPASI"])->first();
+                $range = DB::table("_reference")->where("R_ID", $params["USER_MEMBERI_MPASI"])->first();
                 $range = trim($range->{"R_AGE_RANGE"});
                 if($range != "Y"){
+                    $replyContent .= "\n_• Asupan MPASI perlu perbaikan_";
                     $this->callback[2] = true;
                 }
-                $range = DB::table("_reference")->where("R_ID", $params["MEMBERI_ASI"])->first();
+                $range = DB::table("_reference")->where("R_ID", $params["USER_MEMBERI_ASI"])->first();
                 $range = trim($range->{"R_AGE_RANGE"});
                 if($range != "Y"){
+                    $replyContent .= "\n_• Asupan ASI perlu perbaikan_";
                     $this->callback[4] = true;
                 }
-                $range = DB::table("_reference")->where("R_ID", $params["SERING_SAKIT"])->first();
+                $range = DB::table("_reference")->where("R_ID", $params["USER_SERING_SAKIT"])->first();
                 $range = trim($range->{"R_AGE_RANGE"});
                 if($range != "Y"){
+                    $replyContent .= "\n_• Pola hidup bersih dan sehat perlu dijaga_";
                     $this->callback[3] = true;
                 }
 
@@ -1176,19 +1185,19 @@ class ApiController extends Controller
             Laki-laki
             
             Usia (bulan)
-            17
+            19
             
             Tinggi Badan (cm)
-            80
+            81
             
             Berat Badan (kg)
-            12
+            11
             
             pastikan semua titik tiga sudah terisi, lalu kirim pesan ini
             •
             (process code #MLCP)
             
-            -----------------------------------------";
+            -------------------------------------------------------";
         /**/
 
         /**/
@@ -1203,77 +1212,77 @@ class ApiController extends Controller
             Laki-laki
             
             Usia (bulan)
-            17
+            19
             
             Ketercukupan makanan pokok (pilih berdasarkan angka)
-            1 => 5 sendok makan nasi dalam 1 porsi 
-            2 => 4 sendok makan nasi dalam 1 porsi 
-            3 => 3 sendok makan nasi dalam 1 porsi 
+            1 => 5 sendok makan nasi dalam 1 porsi
+            2 => 4 sendok makan nasi dalam 1 porsi
+            3 => 3 sendok makan nasi dalam 1 porsi
             4 => Tidak diberikan
             5 => Lainnya
-            1
+            4
             
             Ketercukupan lauk pauk (pilih berdasarkan angka)
             1 => 3 potong daging sapi/ayam/ikan/telur dalam 1 porsi
             2 => 2 potong daging sapi/ayam/ikan/telur dalam 1 porsi
-            3 => 1 potong daging sapi/ayam/ikan/telur dalam 1 porsi 
-            4 => 3 potong tempe/tahu dalam 1 porsi 
-            5 => 2 potong tempe/tahu dalam 1 porsi 
+            3 => 1 potong daging sapi/ayam/ikan/telur dalam 1 porsi
+            4 => 3 potong tempe/tahu dalam 1 porsi
+            5 => 2 potong tempe/tahu dalam 1 porsi
             6 => 1 potong tempe/tahu dalam 1 porsi
-            7 => 3 potong makanan olahan (sosis/nugget/bakso) dalam 1 porsi 
-            8 => 2 potong makanan olahan (sosis/nugget/bakso) dalam 1 porsi 
-            9 => 1 potong makanan olahan (sosis/nugget/bakso) dalam 1 porsi 
+            7 => 3 potong makanan olahan (sosis/nugget/bakso) dalam 1 porsi
+            8 => 2 potong makanan olahan (sosis/nugget/bakso) dalam 1 porsi
+            9 => 1 potong makanan olahan (sosis/nugget/bakso) dalam 1 porsi
             10 => Tidak diberikan
             11 => Lainnya
-            2
+            1
             
             Ketercukupan sayur (pilih berdasarkan angka)
-            1 => 1 mangkok sayur dalam 1 porsi 
-            2 => 3/4 mangkok sayur dalam 1 porsi 
-            3 => 1/2 mangkok sayur dalam 1 porsi 
+            1 => 1 mangkok sayur dalam 1 porsi
+            2 => 3/4 mangkok sayur dalam 1 porsi
+            3 => 1/2 mangkok sayur dalam 1 porsi
             4 => 1/4 mangkok sayur dalam 1 porsi
             5 => Tidak diberikan
             6 => Lainnya
             3
             
             Ketercukupan buah (pilih berdasarkan angka)
-            1 => 3 potong buah dalam 1 porsi 
-            2 => 2 potong buah dalam 1 porsi 
+            1 => 3 potong buah dalam 1 porsi
+            2 => 2 potong buah dalam 1 porsi
             3 => 1 potong dalam 1 porsi
             4 => Tidak diberikan
             5 => Lainnya
-            4
+            1
             
             Ketercukupan minum air mineral (pilih berdasarkan angka)
-            1 => 1 gelas dalam sekali minum 
-            2 => 3/4 gelas dalam sekali minum 
-            3 => 1/2 gelas dalam sekali minum 
-            4 => 1/4 gelas dalam sekali minum 
+            1 => 1 gelas dalam sekali minum
+            2 => 3/4 gelas dalam sekali minum
+            3 => 1/2 gelas dalam sekali minum
+            4 => 1/4 gelas dalam sekali minum
             5 => Tidak diberikan
             6 => Lainnya
-            5
+            1
             
             Ketercukupan ASI atau susu formula (pilih berdasarkan angka)
-            1 => > 10x ASI/ Susu Formula dalam sehari 
-            2 => 7-10x ASI/ Susu Formula dalam sehari 
-            3 => 3-6x ASI/ Susu Formula dalam sehari 
-            4 => < 3x ASI/ Susu Formula dalam sehari 
+            1 => > 10x ASI/ Susu Formula dalam sehari
+            2 => 7-10x ASI/ Susu Formula dalam sehari
+            3 => 3-6x ASI/ Susu Formula dalam sehari
+            4 => < 3x ASI/ Susu Formula dalam sehari
             5 => Tidak diberikan
             6 => Lainnya
-            6
+            2
             
             pastikan semua titik tiga sudah terisi, lalu kirim pesan ini
             •
             (process code #MLCP)
             
-            -----------------------------------------";
+            -------------------------------------------------------";
         /**/
 
         /**/
             $mpp = "MENU PROFIL ANDA
 
             * untuk MEMPERBARUI, salin dan ganti informasi pesan ini, lalu kirimkan
-            * ganti titik tiga sesuai angka yang dipilih, lalu kirimkan
+            * ganti TITIK TIGA sesuai angka yang dipilih
             
             Nama Lengkap
             Badrul Akbar Al Muthohhar
@@ -1328,13 +1337,18 @@ class ApiController extends Controller
             1 => < 6 bulan
             2 => >= 6 bulan
             3 => Tidak diberikan
-            3
+            2
             
             Sampai umur berapa ibu memberikan ASI pada baduta (pilih berdasarkan angka)
             1 => < 6 bulan
             2 => >= 6 bulan
             3 => Tidak diberikan
-            2
+            3
+            
+            Apakah baduta anda sering sakit?
+            1 => < 2x dalam satu bulan
+            2 => >= 2x dalam satu bulan
+            1
             
             pastikan semua isian sudah terisi dan tidak ada titik 3 tersisa, lalu kirim pesan ini untuk MEMPERBARUI
             •
@@ -1344,7 +1358,7 @@ class ApiController extends Controller
             ketik 0 untuk kembali ke menu awal";
         /**/
 
-        $data["k"] = $mpp;
+        $data["k"] = $mlcm;
         return Helper::compose2("SUCCESS", "to JSON", $data);
     }
 
