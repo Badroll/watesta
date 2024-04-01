@@ -1008,6 +1008,7 @@ class ApiController extends Controller
                 //$replyContent .= "\n_kembali ke menu awal..._";
 
                 // cek triger
+                $usia = Helper::calculateAge($params["USER_CHILDREN_BIRTHDATE"]);
                 //
                 $range = DB::table("_reference")->where("R_ID", $params["MEMBERI_VITAMINA"])->first();
                 $range = trim($range->{"R_AGE_RANGE"});
