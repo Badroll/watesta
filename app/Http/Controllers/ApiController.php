@@ -14,6 +14,9 @@ class ApiController extends Controller
     public $wabotFooterMessage;
     public $errorMessage = "";
     public $callback = [false, false, false, false, false, false, false];
+    public $newUser = true;
+    public $hasReport = false;
+    public $hasReportMany = false;
     /*
 
     0.	Stunting
@@ -77,8 +80,20 @@ class ApiController extends Controller
             $user = DB::select("
                 SELECT * FROM user WHERE USER_ID = ?
             ", [$userId]);
+        }else{
+            $this->newUser = false;
         }
         $user = $user[0];
+
+        $laporan = DB::select("
+            SELECT * FROM laporan WHERE LAPORAN_USER = ? AND LAPORAN_KETERCUKUPAN_MAKANAN IS NOT NULL
+        ", [$user->{"USER_ID"}]);
+        if(count($laporan) > 0){
+            $this->hasReport = true;
+            if(count($laporan) == 1){
+                $this->hasReportMany = true;
+            }
+        }
 
         $msg = $jsonRequest["message"];
         if($msg == "ML"){
@@ -144,14 +159,24 @@ class ApiController extends Controller
     
     private function menu($jsonRequest){//OK
         error_log(__FUNCTION__ . " called");
-        $replyHeader = "Halo, Selamat Datang di ". Helper::getSetting("APP_NAME_LONG") . " 😊";
-        $replyContent = "\n";
-        $replyContent .= "\nSilahkan pilih menu dengan ketik:";
-        $replyContent .= "\n*MP* untuk PROFIL ANDA";
-        $replyContent .= "\n*ML* untuk INPUT DATA DAN LAPORAN";
-        $replyContent .= "\n*MD* untuk DIAGNOSA & REKOMENDASI";
-        $replyContent .= "\n*ME* untuk EDUKASI";
-        $replyContent .= "\n*MK* untuk KONSULTASI LANGSUNG";
+
+        if($this->newUser){
+            $replyHeader = "Halo perkenalkan nama saya Ika, izinkan saya memperkenalkan aplikasi WA-TESTA";
+            $replyContent = "\n";
+            $replyContent .= "\nWA-TESTA merupakan aplikasi Telemedicine yang dapat digunakan oleh ibu yang memiliki baduta dan balita stunting. Adapun tampilan WA-TESTA terdiri dari pengisian identitas, laporan mingguan, laporan bulanan,diagnose dan rekomendasi, edukasi serta konseling dengan bidan.";
+            $replyContent .= "\n_selamat mencoba.._";
+            $replyContent .= "\n";
+            $replyContent .= "\nSilahkan ketik *MP* untuk kami bisa memahami baduta anda";
+        }else{
+            $replyHeader = "Halo, Selamat Datang di ". Helper::getSetting("APP_NAME_LONG") . " 😊";
+            $replyContent = "\n";
+            $replyContent .= "\nSilahkan pilih menu dengan ketik:";
+            $replyContent .= "\n*MP* untuk PROFIL ANDA";
+            $replyContent .= "\n*ML* untuk INPUT DATA DAN LAPORAN";
+            $replyContent .= "\n*MD* untuk DIAGNOSA & REKOMENDASI";
+            $replyContent .= "\n*ME* untuk EDUKASI";
+            $replyContent .= "\n*MK* untuk KONSULTASI LANGSUNG";
+        }
         
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
         $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
@@ -171,10 +196,14 @@ class ApiController extends Controller
 
             $this->MP($jsonRequest, $user);
         }else{
-            $replyContent .= "\nBuat, lihat, dan monitor dari laporan pemeriksaan buah hati anda, ketik:";
-            $replyContent .= "\n*MLCB* untuk INPUT LAPORAN BULANAN";
-            $replyContent .= "\n*MLCM* untuk INPUT LAPORAN MINGGUAN";
-            $replyContent .= "\n*MLL* untuk MELIHAT DAFTAR LAPORAN ANDA";
+            if($this->hasReport){
+                $replyContent .= "\nBuat, lihat, dan monitor dari laporan pemeriksaan buah hati anda, ketik:";
+                $replyContent .= "\n*MLCB* untuk INPUT LAPORAN BULANAN";
+                $replyContent .= "\n*MLCM* untuk INPUT LAPORAN MINGGUAN";
+                $replyContent .= "\n*MLL* untuk MELIHAT DAFTAR LAPORAN ANDA";
+            }else{
+                $replyContent .= "\nAgar kami bisa lebih memahami anda silahkan ketik *MLCB* untuk menginput laporan bulanan";
+            }
 
             // APA GAK DICEK DI MENU DIAGNOSA SAJA?
             // $lastReport = DB::select("
@@ -221,6 +250,8 @@ class ApiController extends Controller
 
             $this->MLCM($jsonRequest, $user);
         }else{
+            $replyContent .= "\nuntuk melihat hasil diagnosa baduta anda dan rekomendasi yang diberikan, silahkan ketik *MD*";
+
             $finalReply = "*" . $replyHeader . "*" . $replyContent;
             $this->multipleSendtext($jsonRequest["phone"], $finalReply);
         }
@@ -486,10 +517,25 @@ class ApiController extends Controller
             // $replyContent .= "\n*Z-Score = " . $zscore . " SD*";
             // $replyContent .= "\nBuah hati anda berada pada kondisi *_" . strtoupper($stunting) . "_*";
             // $finalReply = "*" . $replyHeader . "*" . $replyContent;
-            // $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
+            // $this->multipleSendtext($jsonRequest["phone"], $finalReply, false)
 
-            // TAMPILKAN SAJA HASIL DIAGNOSANYA! HEHE
-            $this->MD($jsonRequest, $user, $params);
+            if($this->hasReport){
+                // TAMPILKAN SAJA HASIL DIAGNOSANYA! HEHE
+                $this->MD($jsonRequest, $user, $params);
+            }else{
+                if(!isset($params["LAPORAN_KETERCUKUPAN_MAKANAN"])){
+                    $replyHeader = "DATA TERSIMPAN";
+                    $replyContent = "\n";
+                    $replyContent .= "\nTerimakasih telah mengisi data yang kami butuhkan, selanjutnya silahkan ketik *MLCM* untuk menginput laporan mingguan";
+                }else{
+                    $replyHeader = "DATA TERSIMPAN";
+                    $replyContent = "\n";
+                    $replyContent .= "\nTerimakasih telah mengisi data laporan secara lengkap, melihat daftar laporan anda silahkan ketik *MLL*";
+                }
+
+                $finalReply = "*" . $replyHeader . "*" . $replyContent;
+                $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
+            }
 
         }catch(Exception $e){
             error_log($e);
@@ -612,6 +658,11 @@ class ApiController extends Controller
                         $replyContent .= "\n\n*Buah hati anda perlu ketercukupan nutrisi lebih*";
                         $this->callback[1] = true;
                     }
+
+                    if($this->hasReportMany){
+                        $replyContent .= "\n\n";
+                        $replyContent .= "\n_terimakasih sudah mengikuti instruksi kami, semoga buah hati anda selalu sehat, untuk menambah pengetahuan ibu seputar kesehatan baduta silahkan ketik *ME* untuk bisa mendapatkan informasi seputar Stunting, MP-ASI, ASI, Pemantauan Tumbuh Kembang, Imunisasi, Pemenuhan Nutrisi dan perilaku hidup bersih dan sehat (PHBS)_";
+                    }
                 }
             }else{
                 $replyContent .= "\nAnda tidak memiliki laporan apapun, yuk laporkan perkembangan buah hati anda, ketik:";
@@ -645,6 +696,11 @@ class ApiController extends Controller
         $replyContent .= "\n*ME5* untuk EDUKASI TERKAIT *IMUNISASI*";
         $replyContent .= "\n*ME6* untuk EDUKASI TERKAIT *PEMENUHAN NUTRISI*";
         $replyContent .= "\n*ME7* untuk EDUKASI TERKAIT *PERILAKU HIDUP BERSIH DAN SEHAT*";
+
+        if($this->hasReportMany){
+            $replyContent .= "\n\n";
+            $replyContent .= "\n_terimakasih sudah berkenan membaca materi edukasi, selanjutnya untuk bisa berkonsultasi secara langsung dengan bidan, silahkan mengetik *MK*_";
+        }
         
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
         $this->multipleSendtext($jsonRequest["phone"], $finalReply);
@@ -755,6 +811,11 @@ class ApiController extends Controller
         }
         if(count($dokter) == 0){
             $replyContent .= "\n*Mohon maaf, saat ini tidak ada dokter tersedia*";
+        }
+
+        if($this->hasReportMany){
+            $replyContent .= "\n";
+            $replyContent .= "\n_terimakasih atas kerjasamanya telah menggunakan aplikasi WA-TESTA, semoga bermanfaat untuk memantau tumbuh kembang baduta anda_";
         }
         
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
@@ -1005,9 +1066,8 @@ class ApiController extends Controller
             else{
                 $updateProfil = DB::table("user")->where("USER_ID", $user->{"USER_ID"})->update($params);
 
-                $replyHeader = "PROFIL ANDA BERHASIL DIPERBARUI";
+                $replyHeader = "DATA DIPERBARUI";
                 $replyContent = "\n";
-                //$replyContent .= "\n_kembali ke menu awal..._";
 
                 // cek triger
                 $usia = Helper::calculateAge($params["USER_CHILDREN_BIRTHDATE"]);
@@ -1059,6 +1119,9 @@ class ApiController extends Controller
                     $this->callback[3] = true;
                 }
 
+                $replyContent .= "\n";
+                $replyContent .= "\n_terimakasih telah mengisi data yang kami butuhkan._";
+                $replyContent .= "\n_untuk selanjutnya, silahkan ketik *ML* untuk mengisi laporan seputar baduta anda_";
 
                 $finalReply = "*" . $replyHeader . "*" . $replyContent;
                 $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
@@ -1358,7 +1421,14 @@ class ApiController extends Controller
             ketik 0 untuk kembali ke menu awal";
         /**/
 
-        $data["k"] = $mlcm;
+        $t = Request::get("t");
+        if($t == "mpp"){
+            $data["k"] = $mpp;
+        }else if($t == "mlcb"){
+            $data["k"] = $mlcb;
+        }else if($t == "mlcm"){
+            $data["k"] = $mlcm;
+        }
         return Helper::compose2("SUCCESS", "to JSON", $data);
     }
 
