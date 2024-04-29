@@ -561,7 +561,7 @@ class ApiController extends Controller
             }
         }else{
             if(count($lastLaporan) == 0){
-                $replyContent = "\nMaaf, anda tidak memiliki laporan tinggi/panjang badan balita anda, ketik:";
+                $replyContent = "\nMaaf, anda tidak memiliki laporan tinggi/panjang badan baduta anda, ketik:";
                 $replyContent .= "\n*MLCB* untuk MEMBUAT LAPORAN TINGGI/PANJANG BADAN";
                 $this->multipleSendtext($phone, $replyContent, false);
                 return false;
@@ -680,6 +680,20 @@ class ApiController extends Controller
             }
             if($this->callback[5]){
                 $this->MEX($jsonRequest, "ME4");
+            }
+
+            $recommendation = $user->{"USER_RECOMMENDATION"};
+            if($recommendation[2] == "1"){
+                $this->MEX($jsonRequest, "ME2");
+            }
+            if($recommendation[3] == "1"){
+                $this->MEX($jsonRequest, "ME7");
+            }
+            if($recommendation[4] == "1"){
+                $this->MEX($jsonRequest, "ME2");
+            }
+            if($recommendation[6] == "1"){
+                $this->MEX($jsonRequest, "ME5");
             }
         }
     }
@@ -1064,7 +1078,6 @@ class ApiController extends Controller
                 $this->invalidInput($jsonRequest);
             }
             else{
-                $updateProfil = DB::table("user")->where("USER_ID", $user->{"USER_ID"})->update($params);
 
                 $replyHeader = "DATA DIPERBARUI";
                 $replyContent = "\n";
@@ -1123,32 +1136,39 @@ class ApiController extends Controller
                 $replyContent .= "\n_terimakasih telah mengisi data yang kami butuhkan._";
                 $replyContent .= "\n_untuk selanjutnya, silahkan ketik *ML* untuk mengisi laporan seputar baduta anda_";
 
-                $finalReply = "*" . $replyHeader . "*" . $replyContent;
-                $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
-
-                if($this->callback[0]){
-                    $this->MEX($jsonRequest, "ME1");
-                }
-                if($this->callback[1]){
-                    $this->MEX($jsonRequest, "ME6");
-                }
-                if($this->callback[2]){
-                    $this->MEX($jsonRequest, "ME2");
-                }
-                if($this->callback[3]){
-                    $this->MEX($jsonRequest, "ME7");
-                }
-                if($this->callback[4]){
-                    $this->MEX($jsonRequest, "ME2");
-                }
-                if($this->callback[5]){
-                    $this->MEX($jsonRequest, "ME4");
-                }
-                if($this->callback[6]){
-                    $this->MEX($jsonRequest, "ME5");
-                }
+                // if($this->callback[0]){
+                //     //$this->MEX($jsonRequest, "ME1");
+                // }
+                // if($this->callback[1]){
+                //     //$this->MEX($jsonRequest, "ME6");
+                // }
+                // if($this->callback[2]){
+                //     //$this->MEX($jsonRequest, "ME2"); //include
+                // }
+                // if($this->callback[3]){
+                //     //$this->MEX($jsonRequest, "ME7"); //include
+                // }
+                // if($this->callback[4]){
+                //     //$this->MEX($jsonRequest, "ME2"); //include
+                // }
+                // if($this->callback[5]){
+                //     //$this->MEX($jsonRequest, "ME4");
+                // }
+                // if($this->callback[6]){
+                //     //$this->MEX($jsonRequest, "ME5"); //include
+                // }
 
                 //$this->menu($jsonRequest);
+
+                $recommendation = "";
+                foreach($this->callback as $k => $v){
+                    $recommendation .= ($v ? "1" : "0");
+                }
+                $params["USER_RECOMMENDATION"] = $recommendation;
+                $updateProfil = DB::table("user")->where("USER_ID", $user->{"USER_ID"})->update($params);
+                
+                $finalReply = "*" . $replyHeader . "*" . $replyContent;
+                $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
             }
 
         }catch(Exception $e){
