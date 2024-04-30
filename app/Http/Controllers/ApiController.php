@@ -234,7 +234,7 @@ class ApiController extends Controller
         $replyContent .= "\n";
 
         $laporan = DB::select("
-            SELECT * FROM laporan as A JOIN user as B ON A.LAPORAN_USER = B.USER_ID WHERE B.USER_PHONE = ?
+            SELECT * FROM laporan as A JOIN user as B ON A.LAPORAN_USER = B.USER_ID WHERE B.USER_PHONE = ? AND LAPORAN_KETERCUKUPAN_MAKANAN IS NULL
         ", [$jsonRequest["phone"]]);
         foreach($laporan as $key => $value){
             $zscore = Helper::calculateZscore($value->{"LAPORAN_GENDER"}, $value->{"LAPORAN_USIA"}, $value->{"LAPORAN_TB"});
@@ -716,9 +716,9 @@ class ApiController extends Controller
 
             // terimakasih di sini
             if($this->hasReportMany){
-                $replyContent = "\n\n";
+                $replyContent = "";
                 $replyContent .= "\n_Terimakasih sudah mengikuti instruksi kami, semoga buah hati anda selalu sehat. Jika ibu ingin brkonsultasi dengan Bidan silahkan ketik *MK*_";
-                $finalReply = "*" . $replyContent . "*";
+                $finalReply = $replyContent;
                 $this->multipleSendtext($jsonRequest["phone"], $finalReply);
             }
 
