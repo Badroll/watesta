@@ -19,13 +19,13 @@ class ApiController extends Controller
     public $hasReportMany = false;
     /*
 
-    0.	Stunting
-    1.	Nutrisi
-    2.	MPASI
-    3.	PHBS
-    4.	ASI
-    5.	Pemantauan Tumbuh Kembang
-    6.	Imunisasi
+    0.	Stunting ME1
+    1.	Nutrisi ME6
+    2.	MPASI ME2
+    3.	PHBS ME7
+    4.	ASI ME2
+    5.	Pemantauan Tumbuh Kembang ME4
+    6.	Imunisasi ME5
 
     ME1 untuk EDUKASI TERKAIT EDUKASI STUNTING
     ME2 untuk EDUKASI TERKAIT MP ASI
@@ -633,6 +633,8 @@ class ApiController extends Controller
 
                     // cek trigger stunting
                     if($zscore <= -2){
+                        // judul edukasi
+                        $replyContent .= "\n• EDUKASI TERKAIT EDUKASI STUNTING";
                         $this->callback[0] = true;
                     }
 
@@ -655,34 +657,40 @@ class ApiController extends Controller
                         }
                     }
                     if($ketercukupanSalah > 1){
-                        $replyContent .= "\n\n*Buah hati anda perlu ketercukupan nutrisi lebih*";
+                        //$replyContent .= "\n\n*Buah hati anda perlu ketercukupan nutrisi lebih*"; // judul edukasi (ganti)
+                        $replyContent .= "\n• EDUKASI TERKAIT PEMENUHAN NUTRISI";
                         $this->callback[1] = true;
                     }
 
-                    if($this->hasReportMany){
-                        $replyContent .= "\n\n";
-                        $replyContent .= "\n_terimakasih sudah mengikuti instruksi kami, semoga buah hati anda selalu sehat, untuk menambah pengetahuan ibu seputar kesehatan baduta silahkan ketik *ME* untuk bisa mendapatkan informasi seputar Stunting, MP-ASI, ASI, Pemantauan Tumbuh Kembang, Imunisasi, Pemenuhan Nutrisi dan perilaku hidup bersih dan sehat (PHBS)_";
-                    }
                 }
             }else{
                 $replyContent .= "\nAnda tidak memiliki laporan apapun, yuk laporkan perkembangan buah hati anda, ketik:";
                 $replyContent .= "\n*MLCB* untuk MEMBUAT LAPORAN";
             }
+
+            // A.K.A trigger
+            $recommendation = $user->{"USER_RECOMMENDATION"};
+
+            if($recommendation[2] == "1"){
+                // judul edukasi
+                $replyContent .= "\n• untuk EDUKASI TERKAIT MP ASI";
+            }
+            if($recommendation[3] == "1"){
+                // judul edukasi
+                $replyContent .= "\n• EDUKASI TERKAIT PERILAKU HIDUP BERSIH DAN SEHAT";
+            }
+            if($recommendation[4] == "1"){
+                // judul edukasi
+                $replyContent .= "\n• EDUKASI TERKAIT MP ASI";
+            }
+            if($recommendation[6] == "1"){
+                // judul edukasi
+                $replyContent .= "\n• EDUKASI TERKAIT IMUNISASI";
+            }
                 
             $finalReply = "*" . $replyHeader . "*" . $replyContent;
             $this->multipleSendtext($jsonRequest["phone"], $finalReply);
-            // A.K.A trigger
-            if($this->callback[0]){
-                $this->MEX($jsonRequest, "ME1");
-            }
-            if($this->callback[1]){
-                $this->MEX($jsonRequest, "ME6");
-            }
-            if($this->callback[5]){
-                $this->MEX($jsonRequest, "ME4");
-            }
 
-            $recommendation = $user->{"USER_RECOMMENDATION"};
             if($recommendation[2] == "1"){
                 $this->MEX($jsonRequest, "ME2");
             }
@@ -695,6 +703,25 @@ class ApiController extends Controller
             if($recommendation[6] == "1"){
                 $this->MEX($jsonRequest, "ME5");
             }
+            
+            if($this->callback[0]){
+                $this->MEX($jsonRequest, "ME1");
+            }
+            if($this->callback[1]){
+                $this->MEX($jsonRequest, "ME6");
+            }
+            if($this->callback[5]){
+                $this->MEX($jsonRequest, "ME4");
+            }
+
+            // terimakasih di sini
+            if($this->hasReportMany){
+                $replyContent = "\n\n";
+                $replyContent .= "\n_Terimakasih sudah mengikuti instruksi kami, semoga buah hati anda selalu sehat. Jika ibu ingin brkonsultasi dengan Bidan silahkan ketik *MK*_";
+                $finalReply = "*" . $replyContent . "*";
+                $this->multipleSendtext($jsonRequest["phone"], $finalReply);
+            }
+
         }
     }
 
@@ -876,7 +903,7 @@ class ApiController extends Controller
         $replyContent .= "\n" . $user->{"USER_ADDRESS"};
         $replyContent .= "\n";
 
-        $replyContent .= "\nJenis Kelamin (pilih berdasarkan angka)";
+        $replyContent .= "\nJenis Kelamin Ibu (pilih berdasarkan angka)";
         $replyContent .= "\n*1* => Laki-laki";
         $replyContent .= "\n*2* => Perempuan";
         $display = $user->{"USER_GENDER"} == "GENDER_UNDEFINED" ? "..." : Helper::getReferenceOrderById("GENDER", $user->{"USER_GENDER"});
@@ -986,7 +1013,7 @@ class ApiController extends Controller
                     $extract = "ADDRESS";
                     $extractLine = $key + 1;
                 }
-                else if(str_contains($line, "Jenis Kelamin (pilih berdasarkan angka)")){
+                else if(str_contains($line, "Jenis Kelamin Ibu (pilih berdasarkan angka)")){
                     $extract = "GENDER";
                     $extractLine = $key + 1 + 2;
                 }
@@ -1382,7 +1409,7 @@ class ApiController extends Controller
             Alamat
             jl 123 oke
             
-            Jenis Kelamin (pilih berdasarkan angka)
+            Jenis Kelamin Ibu (pilih berdasarkan angka)
             1 => Laki-laki
             2 => Perempuan
             1
@@ -1619,7 +1646,7 @@ Tanggal Lahir Orang Tua (contoh 2022-01-23)
 Alamat
 Mandirancan RT 03 RW 03 
 
-Jenis Kelamin (pilih berdasarkan angka)
+Jenis Kelamin Ibu (pilih berdasarkan angka)
 1 => Laki-laki
 2 => Perempuan
 2
