@@ -1090,11 +1090,11 @@ class ApiController extends Controller
                 if($range != ""){
                     $bulans = explode("-", $range);
                     if(($usia >= intval($bulans[0]) && $usia <= intval($bulans[1])) == false) {
-                        $replyContent .= "\n_• Asupan Vitamin A perlu perbaikan_";
+                        //$replyContent .= "\n_• Asupan Vitamin A perlu perbaikan_";
                         $this->callback[6] = true;
                     }
                 }else{
-                    $replyContent .= "\n_• Asupan Vitamin A perlu perbaikan_";
+                    //$replyContent .= "\n_• Asupan Vitamin A perlu perbaikan_";
                     $this->callback[6] = true;
                 }
 
@@ -1104,11 +1104,11 @@ class ApiController extends Controller
                 if($range != ""){
                     $bulans = explode("-", $range);
                     if(($usia >= intval($bulans[0]) && $usia <= intval($bulans[1])) == false) {
-                        $replyContent .= "\n_• Asupan Obat Cacin perlu perbaikan_";
+                        //$replyContent .= "\n_• Asupan Obat Cacin perlu perbaikan_";
                         $this->callback[6] = true;
                     }
                 }else{
-                    $replyContent .= "\n_• Asupan Obat Cacin perlu perbaikan_";
+                    //$replyContent .= "\n_• Asupan Obat Cacin perlu perbaikan_";
                     $this->callback[6] = true;
                 }
 
@@ -1116,19 +1116,19 @@ class ApiController extends Controller
                 $range = DB::table("_reference")->where("R_ID", $params["USER_MEMBERI_MPASI"])->first();
                 $range = trim($range->{"R_AGE_RANGE"});
                 if($range != "Y"){
-                    $replyContent .= "\n_• Asupan MPASI perlu perbaikan_";
+                    //$replyContent .= "\n_• Asupan MPASI perlu perbaikan_";
                     $this->callback[2] = true;
                 }
                 $range = DB::table("_reference")->where("R_ID", $params["USER_MEMBERI_ASI"])->first();
                 $range = trim($range->{"R_AGE_RANGE"});
                 if($range != "Y"){
-                    $replyContent .= "\n_• Asupan ASI perlu perbaikan_";
+                    //$replyContent .= "\n_• Asupan ASI perlu perbaikan_";
                     $this->callback[4] = true;
                 }
                 $range = DB::table("_reference")->where("R_ID", $params["USER_SERING_SAKIT"])->first();
                 $range = trim($range->{"R_AGE_RANGE"});
                 if($range != "Y"){
-                    $replyContent .= "\n_• Pola hidup bersih dan sehat perlu dijaga_";
+                    //$replyContent .= "\n_• Pola hidup bersih dan sehat perlu dijaga_";
                     $this->callback[3] = true;
                 }
 
