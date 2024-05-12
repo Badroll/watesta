@@ -839,6 +839,15 @@ class ApiController extends Controller
         $aDokter["DOKTER_NAMA"] = "Dr. Evina";
         $aDokter["DOKTER_PHONE"] = "6281806437710";
         array_push($dokter, $aDokter);
+        $aDokter["DOKTER_NAMA"] = "Bu Bidan Ating";
+        $aDokter["DOKTER_PHONE"] = "6282221516585";
+        array_push($dokter, $aDokter);
+        $aDokter["DOKTER_NAMA"] = "Bu Bidan Putri";
+        $aDokter["DOKTER_PHONE"] = "6285842589147";
+        array_push($dokter, $aDokter);
+        $aDokter["DOKTER_NAMA"] = "Bu Bidan Fitri";
+        $aDokter["DOKTER_PHONE"] = "6282220408384";
+        array_push($dokter, $aDokter);
         $dokter = json_decode(json_encode($dokter));
 
         $replyHeader = "MENU KONSULTASI LANGSUNG DENGAN DOKTER";
