@@ -480,7 +480,17 @@ class ApiController extends Controller
                         $params["LAPORAN_KETERCUKUPAN_MAKANAN"] = Helper::getReferenceIdByOrder("KETERCUKUPAN_MAKANAN", trim($line));
                     }
                     else if($extract == "KETERCUKUPAN_LAUK"){
-                        $params["LAPORAN_KETERCUKUPAN_LAUK"] = Helper::getReferenceIdByOrder("KETERCUKUPAN_LAUK", trim($line));
+                        $line = explode(",", trim($line));
+                        $addon = "";
+                        foreach($line as $k => $v){
+                            if($k == 0 || trim($v) == ""){
+                                continue;
+                            }
+                            $addon .= Helper::getReferenceIdByOrder("KETERCUKUPAN_LAUK", $v) . ",";
+                        }
+                        $addon = rtrim($addon, ",");
+                        $params["LAPORAN_KETERCUKUPAN_LAUK"] = Helper::getReferenceIdByOrder("KETERCUKUPAN_LAUK", $line[0]);
+                        $params["LAPORAN_KETERCUKUPAN_LAUK_ADDON"] = $addon;
                     }
                     else if($extract == "KETERCUKUPAN_SAYUR"){
                         $params["LAPORAN_KETERCUKUPAN_SAYUR"] = Helper::getReferenceIdByOrder("KETERCUKUPAN_SAYUR", trim($line));
@@ -498,6 +508,7 @@ class ApiController extends Controller
             }
             $addonParams = $this->cekPanjangBadan($msg, $user->{"USER_ID"}, $jsonRequest["phone"]);
             if($addonParams === false){
+                $this->invalidInput($jsonRequest);
                 return;
             }
             $params["LAPORAN_GENDER"] = $user->{"USER_CHILDREN_GENDER"};
@@ -554,6 +565,7 @@ class ApiController extends Controller
                 $lastLaporan = $lastLaporan[0];
                 $params["LAPORAN_KETERCUKUPAN_MAKANAN"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_MAKANAN"};
                 $params["LAPORAN_KETERCUKUPAN_LAUK"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_LAUK"};
+                $params["LAPORAN_KETERCUKUPAN_LAUK_ADDON"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_LAUK_ADDON"};
                 $params["LAPORAN_KETERCUKUPAN_SAYUR"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_SAYUR"};
                 $params["LAPORAN_KETERCUKUPAN_BUAH"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_BUAH"};
                 $params["LAPORAN_KETERCUKUPAN_MINUM"] = $lastLaporan->{"LAPORAN_KETERCUKUPAN_MINUM"};
@@ -618,6 +630,10 @@ class ApiController extends Controller
                         $replyContent .= "\n•";
                         $replyContent .= "\nKetercukupan makanan pokok :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_MAKANAN", $laporan->{"LAPORAN_KETERCUKUPAN_MAKANAN"}) . "*";
                         $replyContent .= "\n\nKetercukupan lauk pauk :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_LAUK", $laporan->{"LAPORAN_KETERCUKUPAN_LAUK"}) . "*";
+                        $laukAddon = $laporan->{"LAPORAN_KETERCUKUPAN_LAUK_ADDON"} != "" ? explode(",", $laporan->{"LAPORAN_KETERCUKUPAN_LAUK_ADDON"}) : [];
+                        foreach($laukAddon as $k => $v){
+                            $replyContent .= "\n*".Helper::getReferenceInfo("KETERCUKUPAN_LAUK", $v)."*";
+                        }
                         $replyContent .= "\n\nKetercukupan sayur :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_SAYUR", $laporan->{"LAPORAN_KETERCUKUPAN_SAYUR"}) . "*";
                         $replyContent .= "\n\nKetercukupan buah :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_BUAH", $laporan->{"LAPORAN_KETERCUKUPAN_BUAH"}) . "*";
                         $replyContent .= "\n\nKetercukupan minum air mineral :\n*" . Helper::getReferenceInfo("KETERCUKUPAN_MINUM", $laporan->{"LAPORAN_KETERCUKUPAN_MINUM"}) . "*";
@@ -1286,6 +1302,73 @@ class ApiController extends Controller
         
         $finalReply = "*" . $replyHeader . "*" . $replyContent;
         $this->multipleSendtext($jsonRequest["phone"], $finalReply, false);
+    }
+
+
+    public function export(){
+        $curl = curl_init();
+        $data = DB::select("
+            SELECT * FROM laporan as A JOIN user as B ON A.LAPORAN_USER = B.USER_ID
+            WHERE NOT A.LAPORAN_KETERCUKUPAN_LAUK IS NULL
+        ");
+        foreach($data as $k => $v){
+            $newData = new \stdClass;
+            $newData->{"No."} = ($k + 1) . " ";
+            $newData->{"Tanggal"} = Helper::tglIndo($v->{"LAPORAN_DATETIME"}, "SHORT");
+            $newData->{"Nama Ibu"} = $v->{"USER_FULLNAME"};
+            $newData->{"Telepon"} = $v->{"USER_PHONE"};
+            $newData->{"Alamat"} = $v->{"USER_DESA"} . ", " . $v->{"USER_ADDRESS"};
+            $newData->{"Nama Anak"} = $v->{"USER_CHILDREN_FULLNAME"};
+            $newData->{"Berat Badan"} = $v->{"LAPORAN_BB"} . " kg";
+            $newData->{"Tinggi Badan"} = $v->{"LAPORAN_TB"} . " cm";
+            $newData->{"Usia"} = ($v->{"LAPORAN_USIA"} . " bulan");
+            $newData->{"Jenis Kelamin"} = Helper::getReferenceInfo("GENDER", $v->{"USER_CHILDREN_GENDER"});
+            $newData->{"Asupan Vitamin A"} = Helper::getReferenceInfo("MEMBERI_VITAMINA", $v->{"USER_MEMBERI_VITAMINA"});
+            $newData->{"Asupan Obat Cacing"} = Helper::getReferenceInfo("MEMBERI_OBAT_CACING", $v->{"USER_MEMBERI_OBAT_CACING"});
+            $newData->{"Asupan MP ASI"} = Helper::getReferenceInfo("MEMBERI_MPASI", $v->{"USER_MEMBERI_MPASI"});
+            $newData->{"Asupan ASI"} = Helper::getReferenceInfo("MEMBERI_ASI", $v->{"USER_MEMBERI_ASI"});
+            $newData->{"Sering Sakit"} = Helper::getReferenceInfo("SERING_SAKIT", $v->{"USER_SERING_SAKIT"});
+            
+            $newData->{"Ketercukupan Makanan"} = Helper::getReferenceInfo("KETERCUKUPAN_MAKANAN", $v->{"LAPORAN_KETERCUKUPAN_MAKANAN"});
+            $newData->{"Ketercukupan Lauk"} = Helper::getReferenceInfo("KETERCUKUPAN_LAUK", $v->{"LAPORAN_KETERCUKUPAN_LAUK"});
+            $newData->{"Ketercukupan Sayur"} = Helper::getReferenceInfo("KETERCUKUPAN_SAYUR", $v->{"LAPORAN_KETERCUKUPAN_SAYUR"});
+            $newData->{"Ketercukupan Buah"} = Helper::getReferenceInfo("KETERCUKUPAN_BUAH", $v->{"LAPORAN_KETERCUKUPAN_BUAH"});
+            $newData->{"Ketercukupan Minum"} = Helper::getReferenceInfo("KETERCUKUPAN_MINUM", $v->{"LAPORAN_KETERCUKUPAN_MINUM"});
+            $newData->{"Ketercukupan ASI"} = Helper::getReferenceInfo("KETERCUKUPAN_ASI", $v->{"LAPORAN_KETERCUKUPAN_ASI"});
+
+            $zscore = Helper::calculateZScore($v->{"LAPORAN_GENDER"}, $v->{"LAPORAN_USIA"}, $v->{"LAPORAN_TB"});
+            $stunting = Helper::zscoreInfo($zscore);
+            $newData->{"Hasil"} = $zscore . " SD \n(" . $stunting . ")";
+            
+            $data[$k] = ($newData);
+        }
+        //dd($data);
+        $payload = [];
+        $payload["filename"] = "Rekap Laporan Baduta";
+        $payload["title"] = "Rekap Laporan Baduta";
+        $payload["subtitle"] = "Rekap Laporan Baduta Periode Mei 2024";
+        $payload["column_width"] = [5, 25, 30, 20, 30, 30, 15, 15, 15, 30, 30, 30, 30, 30, 30, 30, 45, 30, 30, 30, 35, 25];
+        $payload["data"] = $data;
+        curl_setopt($curl, CURLOPT_HTTPHEADER,
+            array(
+                "Content-Type: application/json"
+            )
+        );
+        $url = "http://localhost:5555/export_excel";
+        $method = "POST";
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($curl, CURLOPT_URL,  $url);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
+        $result = curl_exec($curl);
+        curl_close($curl);
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="'.$payload["filename"].'.xlsx"');
+        header('Content-Length: ' . strlen($result));
+        echo $result;
     }
 
 
