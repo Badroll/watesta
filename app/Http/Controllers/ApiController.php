@@ -1073,7 +1073,7 @@ class ApiController extends Controller
                 }
                 else if(str_contains($line, "Apakah baduta anda sering sakit?")){
                     $extract = "SERING_SAKIT";
-                    $extractLine = $key + 1 + 2;
+                    $extractLine = $key + 1 + 3;
                 }
 
                 if($key == $extractLine){
@@ -1550,6 +1550,7 @@ class ApiController extends Controller
             Apakah baduta anda sering sakit?
             1 => < 2x dalam satu bulan
             2 => >= 2x dalam satu bulan
+            3 => Tidak pernah
             1
             
             pastikan semua isian sudah terisi dan tidak ada titik 3 tersisa, lalu kirim pesan ini untuk MEMPERBARUI
