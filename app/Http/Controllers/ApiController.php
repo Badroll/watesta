@@ -38,6 +38,7 @@ class ApiController extends Controller
     */
 
     public function __construct(){
+        error_log(__FUNCTION__ . " called");
         $this->wabotToken = Helper::getSetting("WABOT_TOKEN");
         $this->wabotDefaultDestination = Helper::getSetting("WABOT_DEFAULT_DESTINATION");
         $this->code = date("Y-m-d H:i:s");
@@ -45,6 +46,7 @@ class ApiController extends Controller
 
 
     public function hooks(){
+        error_log(__FUNCTION__ . " called");
         $jsonRequest = Request::all();
 
         $ymdhis = date("Y-m-d H:i:s");
