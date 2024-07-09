@@ -559,7 +559,7 @@ class ApiController extends Controller
 
     private function cekPanjangBadan($msg, $user, $phone){
         $params = [];
-        $lastLaporan = DB::select("SELECT * FROM laporan WHERE LAPORAN_USER = ?", [$user]);
+        $lastLaporan = DB::select("SELECT * FROM laporan WHERE LAPORAN_USER = ? ORDER BY LAPORAN_ID DESC", [$user]);
         if(str_contains($msg, "BUAT LAPORAN BULANAN")){
             if(count($lastLaporan) == 0){
 
@@ -1389,13 +1389,13 @@ class ApiController extends Controller
             Laki-laki
             
             Usia (bulan)
-            19
+            22
             
             Tinggi Badan (cm)
-            81
+            85,5
             
             Berat Badan (kg)
-            11
+            12,2
             
             pastikan semua titik tiga sudah terisi, lalu kirim pesan ini
             •
@@ -1416,7 +1416,7 @@ class ApiController extends Controller
             Laki-laki
             
             Usia (bulan)
-            19
+            22
             
             Ketercukupan makanan pokok (pilih berdasarkan angka)
             1 => 5 sendok makan nasi dalam 1 porsi
