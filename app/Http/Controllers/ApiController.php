@@ -1310,7 +1310,25 @@ class ApiController extends Controller
     public function export(){
         $curl = curl_init();
         $data = DB::select("
-            SELECT * FROM laporan as A JOIN user as B ON A.LAPORAN_USER = B.USER_ID
+            SELECT C.JUMLAH_BARIS, A.*, B.*
+            FROM laporan as A
+            JOIN user as B ON A.LAPORAN_USER = B.USER_ID
+            JOIN (
+                SELECT 
+                    A.LAPORAN_USER, 
+                    COUNT(*) as JUMLAH_BARIS
+                FROM 
+                    laporan as A 
+                JOIN 
+                    user as B 
+                ON 
+                    A.LAPORAN_USER = B.USER_ID
+                WHERE 
+                    A.LAPORAN_KETERCUKUPAN_LAUK IS NOT NULL
+                GROUP BY 
+                    A.LAPORAN_USER
+            ) AS C ON A.LAPORAN_USER = C.LAPORAN_USER
+
             WHERE NOT A.LAPORAN_KETERCUKUPAN_LAUK IS NULL
         ");
         foreach($data as $k => $v){
@@ -1321,6 +1339,7 @@ class ApiController extends Controller
             $newData->{"Telepon"} = $v->{"USER_PHONE"};
             $newData->{"Alamat"} = $v->{"USER_DESA"} . ", " . $v->{"USER_ADDRESS"};
             $newData->{"Nama Anak"} = $v->{"USER_CHILDREN_FULLNAME"};
+            $newData->{"Jumlah Laporan"} = $v->{"JUMLAH_BARIS"};
             $newData->{"Berat Badan"} = $v->{"LAPORAN_BB"} . " kg";
             $newData->{"Tinggi Badan"} = $v->{"LAPORAN_TB"} . " cm";
             $newData->{"Usia"} = ($v->{"LAPORAN_USIA"} . " bulan");
@@ -1348,8 +1367,8 @@ class ApiController extends Controller
         $payload = [];
         $payload["filename"] = "Rekap Laporan Baduta";
         $payload["title"] = "Rekap Laporan Baduta";
-        $payload["subtitle"] = "Rekap Laporan Baduta Periode Mei 2024";
-        $payload["column_width"] = [5, 25, 30, 20, 30, 30, 15, 15, 15, 30, 30, 30, 30, 30, 30, 30, 45, 30, 30, 30, 35, 25];
+        $payload["subtitle"] = "Rekap Laporan Baduta Periode " . bulan(date("Y-m"));
+        $payload["column_width"] = [5, 25, 30, 20, 30, 30, 5, 15, 15, 15, 30, 30, 30, 30, 30, 30, 30, 45, 30, 30, 30, 35, 25];
         $payload["data"] = $data;
         curl_setopt($curl, CURLOPT_HTTPHEADER,
             array(
