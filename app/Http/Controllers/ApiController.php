@@ -1367,7 +1367,7 @@ class ApiController extends Controller
         $payload = [];
         $payload["filename"] = "Rekap Laporan Baduta";
         $payload["title"] = "Rekap Laporan Baduta";
-        $payload["subtitle"] = "Rekap Laporan Baduta Periode " . bulan(date("Y-m"), "LONG");
+        $payload["subtitle"] = "Rekap Laporan Baduta Periode " . Helper::bulan(date("Y-m"), "LONG");
         $payload["column_width"] = [5, 25, 30, 20, 30, 30, 5, 15, 15, 15, 30, 30, 30, 30, 30, 30, 30, 45, 30, 30, 30, 35, 25];
         $payload["data"] = $data;
         curl_setopt($curl, CURLOPT_HTTPHEADER,
